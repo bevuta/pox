@@ -1,4 +1,4 @@
-= Pox
+# Pox
 
 Pox is a client/server based application that manages tasks. It can be
 used by multiple users. Features include:
@@ -8,7 +8,7 @@ used by multiple users. Features include:
 * Modular notification system
 * Powerful task grouping and filtering capabilities to generate ad-hoc to-do lists
 
-== Implementation
+## Implementation
 
 Pox is implemented in [Chicken Scheme](http://www.call-cc.org/) and
 known to work with version 4.5.0 so far. It can easily be compiled and
@@ -30,6 +30,6 @@ browser, enter a user name and start dabbling!
 
 (more in-depth docs will follow)
 
-== License
+## License
 
 pSee LICENSE for licensing information.
