@@ -1,0 +1,27 @@
+(define-syntax compile-modules
+  (lambda (e r c)
+    (let* ((_make (r 'make))
+	   (_compile (r 'compile))
+	   (_begin (r 'begin)))
+      `(,_begin
+	,@(map (lambda (m)
+		 (let ((m (if (symbol? m) (list m m) (cons (car m) m))))
+		   `(make ((,(conc (car m) ".so")
+			    ,(map (lambda (s) (conc s ".scm")) (cdr m))
+			    (,_begin 
+			     (,_compile -s -O2 -d1 -J ,(conc (conc (car m) ".scm")))
+			     (,_compile -s -O2 -d0 ,(conc (conc (car m) ".import.scm")))))))))
+	       (cdr e))))))
+
+(compile-modules downtime
+		 pox-db/helpers
+		 (pox-db pox-db/helpers)
+		 pox-mail
+		 (pox-mail/sendmail pox-mail)
+		 (pox-mail/smtp pox-mail)
+		 (pox-notification pox-db pox-db/helpers)
+		 (pox-notification/mail pox-notification)
+		 (pox-notification/stdout pox-notification)
+		 (pox-notification/vandusen pox-notification)
+		 pox-model
+		 pox-server)

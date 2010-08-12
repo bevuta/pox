@@ -1,0 +1,94 @@
+body {
+    font-size: 12px;
+    font-family: monospace;
+    padding: 0;
+    margin: 0;
+    color: #dcdccc;
+    background-color: #3f3f3f
+}
+
+h1 {
+    padding: 0 .5em;
+    color: #f0dfaf;
+    position: absolute;
+    right: 1em;
+    top: 0
+}
+
+input, button, textarea {
+    display: block;
+    font-family: monospace;
+    background: #4f4f4f;
+    color: #fff;
+    border: none;
+    margin-bottom: .2em;
+    padding: .5em
+}
+
+#messages { 
+    position: absolute;
+    right: 3em;
+    top: 4em
+}
+
+#controls {
+    padding: .5em;
+    padding-bottom: 1.5em;
+    position: relative;
+    margin-bottom: 1em
+}
+
+#controls label {
+    display: block;
+    width: 7em;
+    float: left;
+    line-height: 2em
+}
+
+#controls input {
+    width: 30em;
+    margin-right: 0px
+}
+
+button {
+    display: block;
+    clear: both;
+    border: none;
+    background: #4f4f4f;
+    color: #fff
+}
+
+#controls input[type=checkbox] {
+    float: left;
+    width: auto;
+    margin-left: 8em;
+    margin-right: .5em
+}
+
+#controls button {
+    width: 5em;
+    position: absolute;
+    left: 34em;
+    top: 8em
+}
+
+#controls label[for=include-done] {
+    width: auto
+}
+
+#tasks {
+    padding: .5em
+}
+
+#tasks textarea {
+    width: 98%;
+    height: 38em;
+    border: none;
+    padding: .5em;
+    clear: both
+}
+
+#tasks button {
+    float: right;
+    margin-right: .7em
+}

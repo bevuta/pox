@@ -1,0 +1,7 @@
+((egg "pox.egg")
+ (synopsis "pox task management")
+ (author "Moritz Heidkamp")
+ (category tools)
+ (license "GPL")
+ (needs)
+ (files "pox-mail.scm" "pox.setup"))

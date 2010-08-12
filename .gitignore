@@ -1,0 +1,6 @@
+init.scm
+*.c
+*.o
+*.import.*
+*.so
+.git-orig

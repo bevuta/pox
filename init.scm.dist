@@ -1,0 +1,11 @@
+(use pox-db)
+
+(db-connection-pool-size 4)
+(db-connection-spec '((host   . "localhost")
+		      (dbname . "pox")
+		      (user   . "postgres")))
+
+(use pox-mail pox-mail/sendmail)
+
+(sendmail-program "/usr/bin/msmtp -t -f foo@bar")
+(send-mail-with sendmail-send)
