@@ -3,5 +3,6 @@
  (author "Moritz Heidkamp")
  (category tools)
  (license "GPL")
- (needs)
+ (needs intarweb uri-common matchable getopt-long pool postgresql hato-smtp json spiffy-request-vars spiffy-uri-match spiffy)
+ (text-depends test)
  (files "pox-mail.scm" "pox.setup"))
