@@ -32,4 +32,4 @@ browser, enter a user name and start dabbling!
 
 ## License
 
-pSee LICENSE for licensing information.
+See LICENSE for licensing information.
