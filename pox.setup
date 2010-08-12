@@ -2,15 +2,22 @@
   (lambda (e r c)
     (let* ((_make (r 'make))
 	   (_compile (r 'compile))
-	   (_begin (r 'begin)))
+	   (_begin (r 'begin))
+	   (_install-extension (r 'install-extension)))
       `(,_begin
 	,@(map (lambda (m)
 		 (let ((m (if (symbol? m) (list m m) (cons (car m) m))))
-		   `(make ((,(conc (car m) ".so")
-			    ,(map (lambda (s) (conc s ".scm")) (cdr m))
-			    (,_begin 
-			     (,_compile -s -O2 -d1 -J ,(conc (conc (car m) ".scm")))
-			     (,_compile -s -O2 -d0 ,(conc (conc (car m) ".import.scm")))))))))
+		   `(,_begin
+		     (,_make ((,(conc (car m) ".so")
+			       ,(map (lambda (s) (conc s ".scm")) (cdr m))
+			       (,_begin 
+				(,_compile -s -O2 -d1 -J ,(conc (car m) ".scm"))
+				(,_compile -s -O2 -d0 ,(conc (car m) ".import.scm"))))))
+
+		     (,_install-extension
+		      ',(car m)
+		      '(,(conc (car m) ".so") ,(conc (car m) ".import.so"))
+		      '((version 0.1))))))
 	       (cdr e))))))
 
 (compile-modules downtime
@@ -25,3 +32,12 @@
 		 (pox-notification/vandusen pox-notification)
 		 pox-model
 		 pox-server)
+
+
+(make (("pox-server" ("run.scm")
+	(compile -o pox-server -O2 -d1 pox-server.scm))))
+
+(install-program
+ 'run
+ '("pox-server")
+ `((version 0.1)))
