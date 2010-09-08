@@ -22,7 +22,7 @@
 					body: (task-list->string tasks
 								 user 
 								 (and (not omit-origin)
-								      (uri->string (server-root-uri)))))))))))
+								      (request-uri (current-request)))))))))))
 
     (lambda (continue user)
       (parameterize ((user-map (select-users)))
