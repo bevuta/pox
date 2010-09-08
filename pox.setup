@@ -21,8 +21,8 @@
 	       (cdr e))))))
 
 (compile-modules downtime
-		 pox-db/helpers
-		 (pox-db pox-db/helpers)
+		 pox-db
+		 (pox-db/helpers pox-db)
 		 pox-mail
 		 (pox-mail/sendmail pox-mail)
 		 (pox-mail/smtp pox-mail)
