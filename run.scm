@@ -8,7 +8,7 @@
 
 (define development? (string=? mode "development"))
 
-(access-log (current-output-port))
+(if development? (access-log (current-output-port)))
 (tcp-buffer-size 1024)
 
 (define load-server
