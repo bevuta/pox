@@ -84,6 +84,7 @@
      (padding .5em)
 
      ((// textarea)
+      (float left)
       (font-size 1em)
       (width 98%)
       (height 38em)
@@ -93,4 +94,12 @@
 
      ((// button) 
       (float right)
-      (margin-right .7em)))))
+      (margin-right .7em)))
+
+    (|#help|
+     (background ,foreground)
+     (display none)
+     (float right)
+
+     ((// .content)
+      (margin .5em)))))
