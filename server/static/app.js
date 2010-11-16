@@ -6,10 +6,11 @@ $(function() {
 
   function button(label) {
     return $("<button/>").attr({ type: "button" }).text(label);
-  } 
+  }
 
   function refresh() {
     var user = $("input[name=user]").val();
+    $.cookie('user', user, { expires: 10000 });
 
     if (user && !user.match(/^\s+$/)) {
       showTasks(user, 
@@ -63,7 +64,7 @@ $(function() {
   function showControls() {
     div("controls")
       .append($("<label/>").attr({ "for": "user" }).text("User: "))
-      .append($("<input/>").attr({ type: "text", id: "user", name: "user", value: $.query.get("user") }).keyup(refreshOnReturn))
+      .append($("<input/>").attr({ type: "text", id: "user", name: "user", value: $.query.get("user") || $.cookie('user') }).keyup(refreshOnReturn))
       .append($("<label/>").attr({ "for": "group-by" }).text(" Group by:  "))
       .append($("<input/>").attr({ type: "text", id: "group-by", name: "group-by", value: $.query.get("group-by") }).keyup(refreshOnReturn))
       .append($("<label/>").attr({ "for": "group-by" }).text(" Filter:  "))
