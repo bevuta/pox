@@ -69,10 +69,17 @@ button {
 
 #controls button {
     font-size: 1em;
+    position: absolute
+}
+
+#controls button#show-tasks {
     width: 5em;
-    position: absolute;
     left: 33.5em;
     top: 8em
+}
+
+#controls #show-help {
+    right: 1em
 }
 
 #controls label[for=include-done] {
