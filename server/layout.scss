@@ -1,0 +1,96 @@
+(let ((background "#3f3f3f")
+      (foreground "#4f4f4f")
+      (text "#dcdccc")
+      (highlight "#f0dfaf"))
+
+  `(css+ 
+    (body
+     (font-size 12px)
+     (font-family monospace)
+     (padding 0)
+     (margin 0)
+     (color ,text)
+     (background-color ,background))
+
+    (h1
+     (padding 0 .5em)
+     (color ,highlight)
+     (position absolute)
+     (right 1em)
+     (top 0))
+
+    ((input button textarea)
+     (display block)
+     (font-family monospace)
+     (background ,foreground)
+     (color white)
+     (border none)
+     (margin-bottom .2em)
+     (padding .5em))
+
+    (button
+     (display block)
+     (clear both)
+     (border none)
+     (background ,foreground)
+     (color white))
+
+    (|#messages|
+     (position absolute)
+     (right 3em)
+     (top 4em))
+
+    (|#controls|
+     (padding .5em)
+     (padding-bottom 1.5em)
+     (position relative)
+     (margin-bottom 1em)
+
+     ((// label) 
+      (font-size 1em)
+      (display block)
+      (width 7em)
+      (float left)
+      (line-height 2em))
+
+     ((// input)
+      (font-size 1em)
+      (width 30em)
+      (margin-right 0px))
+
+     ((// |input[type=checkbox]|)
+      (float left)
+      (width auto)
+      (margin-left 8em)
+      (margin-right .5em))
+
+
+     ((// button)
+      (font-size 1em)
+      (position absolute)
+
+      ((& |#show-tasks|)
+       (width 5em)
+       (left 33.5em)
+       (top 8em))
+
+      ((& |#show-help|)
+       (right 1em)))
+
+     ((// |label[for=include-done]|)
+      (width auto)))
+
+    (|#tasks|
+     (padding .5em)
+
+     ((// textarea)
+      (font-size 1em)
+      (width 98%)
+      (height 38em)
+      (border none)
+      (padding .5em)
+      (clear both))
+
+     ((// button) 
+      (float right)
+      (margin-right .7em)))))
