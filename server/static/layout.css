@@ -39,6 +39,7 @@ input, button, textarea {
 }
 
 #controls label {
+    font-size: 1em;
     display: block;
     width: 7em;
     float: left;
@@ -46,6 +47,7 @@ input, button, textarea {
 }
 
 #controls input {
+    font-size: 1em;
     width: 30em;
     margin-right: 0px
 }
@@ -66,9 +68,10 @@ button {
 }
 
 #controls button {
+    font-size: 1em;
     width: 5em;
     position: absolute;
-    left: 34em;
+    left: 33.5em;
     top: 8em
 }
 
@@ -81,6 +84,7 @@ button {
 }
 
 #tasks textarea {
+    font-size: 1em;
     width: 98%;
     height: 38em;
     border: none;
