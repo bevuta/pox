@@ -2,11 +2,16 @@ $(function() {
   var help = $("<div/>").attr("id", "help")
     .append($("<div/>").attr("class", "content").html("\
   <h2>Help</h2> \
-  \
+  <h3>Task Line Syntax</h3> \
+  <pre>* [description] (#([id]:[revision])? [meta-data])?</pre> \
+  Examples: \
   <dl> \
-    <dt>foo</dt> \
-    <dd>bar</dd> \
+    <dt>A new task for yourself:</dt> \
+    <dd><pre>* do something</pre></dd> \
+    <dt>An existing task with the ID 274, revision 2:</dt> \
+    <dd><pre>* make stuff #274:2</pre></dd> \
   </dl> \
+  \
  "));
 
   function div(id) {
@@ -81,8 +86,8 @@ $(function() {
         help.hide();
       } else {
         originalWidth = textarea.width();
-        textarea.width("68%");
-        help.width("30%");
+        textarea.width("58%");
+        help.width("40%");
         help.show();
       }
     }
