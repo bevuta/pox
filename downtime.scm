@@ -3,7 +3,7 @@
 (downtime-read downtime-write task->item-line task->string)
 
 (import chicken scheme extras data-structures)
-(use srfi-1 srfi-13 ports matchable)
+(use srfi-1 srfi-13 ports matchable uri-common)
 
 (require-library regex)
 (import irregex)
@@ -282,6 +282,9 @@
 	  (conc line "\n  " (string-intersperse (string-split description "\n" #t) "  \n  ") "\n")
 	  line))))
 
+(define (origin->string o)
+  (if (string? o) o (uri->string o)))
+
 (define (downtime-write-internal tasks)
   (match tasks
     (('group group groupings ...)
@@ -297,7 +300,7 @@
 
 (define (downtime-write tasks user #!optional origin)
   (parameterize ((scope '()) (current-user user))
-    (when origin (print "@origin " origin #\newline))
+    (when origin (print "@origin " (origin->string origin) #\newline))
     (downtime-write-internal tasks)))
 
 )
