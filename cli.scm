@@ -41,11 +41,11 @@
 
 (define get-tasks-options-grammar
   '((omit-origin "omit the @origin declaration"
-		 (required? #f)
+		 (required #f)
 		 (single-char #\o)
 		 (value #f))
     (include-done "include tasks marked as done"
-		  (required? #f)
+		  (required #f)
 		  (single-char #\d)
 		  (value #f))))
 
