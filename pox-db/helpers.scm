@@ -5,12 +5,19 @@
  alist->sql-update
  quote-id
  db-query
+ db-compose-query
  db-select
  db-select-one
  result->alists)
 
 (import chicken scheme data-structures extras)
-(use srfi-1 postgresql pox-db)
+(use srfi-1 postgresql pox-db ssql)
+(require-library ssql-postgresql)
+
+(define (->sql stmt)
+  (if (string? stmt)
+      stmt
+      (ssql->sql (db-connection) stmt)))
 
 (define (alist->sql-update/insert table alist #!key (pkey 'id) conditions)
   (if (alist-ref pkey alist)
@@ -58,8 +65,11 @@
 
 (define (db-query statement #!optional (vars '()))
   (query* (db-connection)
-	  statement
+	  (->sql statement)
 	  vars))
+
+(define (db-compose-query a b)
+  (ssql-compose (db-connection) a b))
 
 (define (db-select-one table condition-column value column)
   (let ((result (db-select table condition-column value (quote-id column))))

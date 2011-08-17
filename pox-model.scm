@@ -31,7 +31,7 @@
 (define (select-users)
   (row-map (lambda (user)
 	     (cons (car user) (cadr user)))
-	   (db-query "SELECT id, name FROM users")))
+	   (db-query '(select (columns id name) (from users)))))
 
 (define (user-name->id name)
   (and-let* ((name name)
@@ -52,34 +52,41 @@
 (define (remove-sql-nulls l)
   (remove (compose sql-null? cdr) l))
 
-(define (select-tasks #!optional (additional "") (vars '()))
-  (db-query (conc "SELECT t.id, t.revision, t.name, t.description, t.priority, t.done, t.category,
-                          u1.name AS assignee, u2.name AS assigner,u3.name AS creator
-                   FROM tasks AS t
-                   JOIN users AS u1 ON t.assignee_id = u1.id 
-                   JOIN users AS u2 ON t.assigner_id = u2.id
-                   JOIN users AS u3 ON t.creator_id  = u3.id " additional)
+(define (select-tasks #!optional (additional '()) (vars '()))
+  (db-query (db-compose-query
+             '(select (columns t.id t.revision t.name t.description t.priority t.done t.category
+                               (as u1.name assignee) (as u2.name assigner) (as u3.name creator))
+                (from (join left
+                            (join left
+                                  (join left 
+                                        (as tasks t) 
+                                        (as users u1) 
+                                        (on (= t.assignee_id u1.id))) 
+                                  (as users u2) 
+                                  (on (= t.assigner_id u2.id)))
+                            (as users u3)
+                            (on (= t.creator_id u3.id)))))
+             additional) 
 	    vars))
 
 (define (select-user-tasks user #!optional groups (filters '()) (include-done #f))
-  (let* ((conditions (if (pair? filters)
-			 (conc "AND (" 
-			       (string-intersperse (fold (lambda (i s) 
-							   (cons (format "t.name LIKE $~A OR ~
-                                                                          t.description LIKE $~A OR ~
-                                                                          t.category like $~A" i i i) s))
-							 '()
-							 (iota (length filters) 2))
-						   " OR ")
-			       ")")
-			 ""))
+  (let* ((conditions '((in $1 #(u1.name u2.name u3.name))))
+         (conditions (if (pair? filters)
+			 (cons*
+                          'and
+                          `(or . (map (lambda (i s)
+                                        (let ((var (string->symbol (format "$~A" i))))
+                                          `((like t.name ,var)
+                                            (like t.description ,var)
+                                            (like t.category ,var))))
+                                      (iota (length filters) 2)))
+                          conditions)
+			 conditions))
 	 (conditions (if include-done 
 			 conditions
-			 (conc conditions  " AND done = FALSE")))
-	 
-	 (tasks (select-tasks (format "WHERE $1 IN (u1.name, u2.name, u3.name) ~A
-                                       ORDER BY t.priority DESC, t.created_at ASC, t.id ASC" 
-				      conditions)
+			 (cons* 'and '(= done #f) conditions)))
+	 (tasks (select-tasks `((order (desc t.priority) (asc t.created_at) (asc t.id))
+                                (where ,conditions))
 			      (cons user (map (cut conc "%" <> "%") filters))))
 	 (tasks (map remove-sql-nulls (result->alists tasks))))
 
@@ -226,19 +233,19 @@
 
     (lambda (user-id tasks)
       (with-transaction (db-connection)
-			(lambda ()
-			  (let ((notifications (select-user-notifications)))
-			    (fold-right (lambda (task conflicts)
-					  (if (save user-id task notifications)
-					      conflicts
-					      (let* ((new-task (select-tasks "WHERE t.id = $1" (list (alist-ref 'id task))))
-						     (new-task (and (< 0 (row-count new-task)) (row-alist new-task)))
-						     (task (if new-task
-							       (alist-update! 'revision (alist-ref 'revision new-task) task)
-							       task)))
-						(cons (list task new-task) conflicts))))
-					'()
-					tasks)))))))
+        (lambda ()
+          (let ((notifications (select-user-notifications)))
+            (fold-right (lambda (task conflicts)
+                          (if (save user-id task notifications)
+                              conflicts
+                              (let* ((new-task (select-tasks '(where (= t.id $1)) (list (alist-ref 'id task))))
+                                     (new-task (and (< 0 (row-count new-task)) (row-alist new-task)))
+                                     (task (if new-task
+                                               (alist-update! 'revision (alist-ref 'revision new-task) task)
+                                               task)))
+                                (cons (list task new-task) conflicts))))
+                        '()
+                        tasks)))))))
 
 (define (task-list->string tasks user #!optional origin)
   (with-output-to-string (cut downtime-write tasks user origin)))
