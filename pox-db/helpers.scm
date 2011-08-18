@@ -27,7 +27,7 @@
       (alist->sql-insert table alist)))
 
 (define (quote-id id)
-  (conc "\"" id "\""))
+  (quote-identifier (db-connection) id))
 
 (define (alist->sql-insert table alist)
   (let* ((cols (string-intersperse (map (compose quote-id car) alist) ", "))
