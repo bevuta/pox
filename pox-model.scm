@@ -115,9 +115,11 @@
 			   result
 			   eq?)))
 	'()
-	(result->alists (db-query "SELECT un.user_id, un.params, nh.name
-                                   FROM user_notifications AS un 
-                                   JOIN notification_handlers AS nh ON nh.id = un.handler_id"))))
+	(result->alists (db-query '(select (columns un.user_id un.params nh.name)
+                                     (from (join left
+                                                 (as user_notifications un)
+                                                 (as notification_handlers nh)
+                                                 (on (= nh.id un.handler_id)))))))))
 
 (define (tasks-diff? task1 task2)
   (any (lambda (col)
@@ -211,7 +213,8 @@
 				       ((insert) (insert task user-id))
 				       (else #f)))
 			  (result    (and statement 
-					  (db-query (db-compose-query statement '((returning id revision))))))
+					  (db-query (db-compose-query (car statement) '((returning id revision)))
+                                                    (cdr statement))))
 			  (task      (if (and result (not (zero? (row-count result))))
 					 (alist-merge (row-alist result) task)
 					 task))

@@ -39,9 +39,12 @@
      (map cdr alist))))
 
 (define (alist->ssql-insert table alist)
-  `(insert (into ,table) 
-           (columns . ,(map car alist))
-           (values . ,(map cdr alist))))
+  (cons `(insert (into ,table) 
+                 (columns . ,(map car alist))
+                 (values ,(list-tabulate (length alist) 
+                                         (lambda (p) 
+                                           (string->symbol (sprintf "$~A" (add1 p)))))))
+        (map cdr alist)))
 
 (define (alist->sql-update table alist #!key (pkey 'id) conditions)
   (let* ((pkey-val  (alist-ref pkey alist))
@@ -73,12 +76,15 @@
   (let* ((pkey-cond `(= ,pkey ,(alist-ref pkey alist)))
          (conditions (if conditions 
                          `(and ,pkey-cond ,conditions)
-                         pkey-cond)))
-    `(update (table ,table)
-             (set . ,(map (lambda (p) 
-                            (list (car p) (cdr p)))
-                          (alist-delete pkey alist)))
-             (where ,conditions))))
+                         pkey-cond))
+         (alist (alist-delete pkey alist)))
+    (cons `(update (table ,table)
+                   (set . ,(map (lambda (col i)
+                                  (list (car col) (string->symbol (sprintf "$~A" (add1 i)))))
+                                alist
+                                (iota (length alist))))
+                   (where ,conditions))
+          (map cdr alist))))
 
 
 (define (db-query statement #!optional (vars '()))
@@ -97,7 +103,8 @@
 (define (db-select table condition-column value #!optional (columns '*))
   (let ((result (db-query `(select (columns ,columns)
                              (from ,table)
-                             (where (= ,condition-column ,value))))))
+                             (where (= ,condition-column $1)))
+                          (list value))))
     (and (> (row-count result) 0) result)))
 
 (define (result->alists result)
