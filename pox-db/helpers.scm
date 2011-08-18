@@ -1,9 +1,6 @@
 (module pox-db/helpers
 
-(alist->sql-update/insert
- alist->sql-insert
- alist->sql-update
- alist->ssql-insert
+(alist->ssql-insert
  alist->ssql-update
  quote-id
  db-query
@@ -21,22 +18,8 @@
       stmt
       (ssql->sql (db-connection) stmt)))
 
-(define (alist->sql-update/insert table alist #!key (pkey 'id) conditions)
-  (if (alist-ref pkey alist)
-      (alist->sql-update table alist pkey: pkey conditions: conditions)
-      (alist->sql-insert table alist)))
-
 (define (quote-id id)
   (quote-identifier (db-connection) id))
-
-(define (alist->sql-insert table alist)
-  (let* ((cols (string-intersperse (map (compose quote-id car) alist) ", "))
-         (vals (string-intersperse (list-tabulate (length alist) 
-                                                  (lambda (p) 
-                                                    (conc "$" (add1 p)))) ", ")))
-    (cons
-     (sprintf "INSERT INTO ~A (~A) VALUES (~A)" (quote-id table) cols vals)               
-     (map cdr alist))))
 
 (define (alist->ssql-insert table alist)
   (cons `(insert (into ,table) 
@@ -45,32 +28,6 @@
                                          (lambda (p) 
                                            (string->symbol (sprintf "$~A" (add1 p)))))))
         (map cdr alist)))
-
-(define (alist->sql-update table alist #!key (pkey 'id) conditions)
-  (let* ((pkey-val  (alist-ref pkey alist))
-	 (alist     (alist-delete pkey alist))
-	 (vals      (map-in-order cdr alist))
-	 (cond-str  (and conditions (car conditions)))
-	 (cond-vals (if conditions (cdr conditions) '()))
-	 (vals      (append cond-vals vals (list pkey-val)))
-	 (vars      (let loop ((pos (add1 (length cond-vals)))
-			       (alist alist)
-			       (result '()))
-
-		      (if (null? alist)
-			  result
-			  (loop (add1 pos)
-				(cdr alist)
-				(let ((var (conc "$" pos))
-				      (col (quote-id (caar alist))))
-				  (cons (conc col " = " var) result))))))
-	 (statement (conc "UPDATE " (quote-id table) " SET " (string-intersperse (reverse vars) ", ")
-			  " WHERE " (quote-id pkey) " = $" (length vals))))
-
-    (cons (if cond-str
-	      (conc statement " AND (" cond-str ")")
-	      statement)
-	  vals)))
 
 (define (alist->ssql-update table alist #!key (pkey 'id) conditions)
   (let* ((pkey-cond `(= ,pkey ,(alist-ref pkey alist)))
@@ -86,9 +43,7 @@
                    (where ,conditions))
           (map cdr alist))))
 
-
 (define (db-query statement #!optional (vars '()))
-  (pp (list query: statement vars))
   (query* (db-connection)
 	  (->sql statement)
 	  vars))
