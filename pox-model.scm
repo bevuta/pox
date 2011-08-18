@@ -106,9 +106,6 @@
 (define (->number s)
   (and s (string->number (->string s))))
 
-
-(define (ppp e) (pp e) e)
-
 (define (select-user-notifications)
   (fold (lambda (n result)
 	  (let ((user-id (alist-ref 'user_id n)))
