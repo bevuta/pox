@@ -72,13 +72,13 @@
 (define (select-user-tasks user #!optional groups (filters '()) (include-done #f))
   (let* ((conditions '(in $1 #(u1.name u2.name u3.name)))
          (conditions (if (pair? filters)
-			 `(and (or . ,(append-map (lambda (i)
-                                                    (let ((var (string->symbol (sprintf "$~A" i))))
-                                                      `((like t.name ,var)
-                                                        (like t.description ,var)
-                                                        (like t.category ,var))))
-                                                  (iota (length filters) 2)))
-                               ,conditions)
+			 `(and ,conditions
+                               . ,(map (lambda (i)
+                                         (let ((var (string->symbol (sprintf "$~A" i))))
+                                           `(or (like t.name ,var)
+                                                (like t.description ,var)
+                                                (like t.category ,var))))
+                                       (iota (length filters) 2)))
                          conditions))
 	 (conditions (if include-done 
 			 conditions
