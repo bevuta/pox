@@ -3,6 +3,8 @@
 (alist->sql-update/insert
  alist->sql-insert
  alist->sql-update
+ alist->ssql-insert
+ alist->ssql-update
  quote-id
  db-query
  db-compose-query
@@ -36,6 +38,11 @@
      (sprintf "INSERT INTO ~A (~A) VALUES (~A)" (quote-id table) cols vals)               
      (map cdr alist))))
 
+(define (alist->ssql-insert table alist)
+  `(insert (into ,table) 
+           (columns . ,(map car alist))
+           (values . ,(map cdr alist))))
+
 (define (alist->sql-update table alist #!key (pkey 'id) conditions)
   (let* ((pkey-val  (alist-ref pkey alist))
 	 (alist     (alist-delete pkey alist))
@@ -62,8 +69,20 @@
 	      statement)
 	  vals)))
 
+(define (alist->ssql-update table alist #!key (pkey 'id) conditions)
+  (let* ((pkey-cond `(= ,pkey ,(alist-ref pkey alist)))
+         (conditions (if conditions 
+                         `(and ,pkey-cond ,conditions)
+                         pkey-cond)))
+    `(update (table ,table)
+             (set . ,(map (lambda (p) 
+                            (list (car p) (cdr p)))
+                          (alist-delete pkey alist)))
+             (where ,conditions))))
+
 
 (define (db-query statement #!optional (vars '()))
+  (pp (list query: statement vars))
   (query* (db-connection)
 	  (->sql statement)
 	  vars))
@@ -72,15 +91,13 @@
   (ssql-compose (db-connection) a b))
 
 (define (db-select-one table condition-column value column)
-  (let ((result (db-select table condition-column value (quote-id column))))
+  (let ((result (db-select table condition-column value column)))
     (and result (value-at result))))
 
-(define (db-select table condition-column value #!optional (columns  "*"))
-  (let ((result (db-query (format "SELECT ~A FROM ~A WHERE ~A = $1" 
-				  columns
-				  (quote-id table)
-				  (quote-id condition-column))
-			  (list value))))
+(define (db-select table condition-column value #!optional (columns '*))
+  (let ((result (db-query `(select (columns ,columns)
+                             (from ,table)
+                             (where (= ,condition-column ,value))))))
     (and (> (row-count result) 0) result)))
 
 (define (result->alists result)

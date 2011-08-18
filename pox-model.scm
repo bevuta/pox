@@ -197,13 +197,11 @@
 			   (task (alist-delete 'assigner task)))
 		      task)))
 
-	 
-
 	 (insert (lambda (task user-id)
-		   (alist->sql-insert "tasks" (alist-delete 'revision (alist-update! 'creator_id user-id task)))))
+		   (alist->ssql-insert 'tasks (alist-delete 'revision (alist-update! 'creator_id user-id task)))))
 
 	 (update (lambda (task user-id)
-		   (alist->sql-update "tasks" task conditions: `("revision = $1" ,(sub1 (alist-ref 'revision task))))))
+		   (alist->ssql-update 'tasks task conditions: `(= revision ,(sub1 (alist-ref 'revision task))))))
 
 	 (save   (lambda (user-id task notifications)
 		   (let* ((old-task  (alist-ref 'id task))
@@ -218,8 +216,7 @@
 				       ((insert) (insert task user-id))
 				       (else #f)))
 			  (result    (and statement 
-					  (db-query (conc (car statement) " RETURNING id, revision")
-						    (cdr statement))))
+					  (db-query (db-compose-query statement '((returning id revision))))))
 			  (task      (if (and result (not (zero? (row-count result))))
 					 (alist-merge (row-alist result) task)
 					 task))
