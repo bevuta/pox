@@ -70,24 +70,22 @@
 	    vars))
 
 (define (select-user-tasks user #!optional groups (filters '()) (include-done #f))
-  (let* ((conditions '((in $1 #(u1.name u2.name u3.name))))
+  (let* ((conditions '(in $1 #(u1.name u2.name u3.name)))
          (conditions (if (pair? filters)
-			 (cons*
-                          'and
-                          `(or . (map (lambda (i s)
-                                        (let ((var (string->symbol (format "$~A" i))))
-                                          `((like t.name ,var)
-                                            (like t.description ,var)
-                                            (like t.category ,var))))
-                                      (iota (length filters) 2)))
-                          conditions)
-			 conditions))
+			 `(and (or . ,(append-map (lambda (i)
+                                                    (let ((var (string->symbol (sprintf "$~A" i))))
+                                                      `((like t.name ,var)
+                                                        (like t.description ,var)
+                                                        (like t.category ,var))))
+                                                  (iota (length filters) 2)))
+                               ,conditions)
+                         conditions))
 	 (conditions (if include-done 
 			 conditions
-			 (cons* 'and '(= done #f) conditions)))
+                         `(and (= done #f) ,conditions)))
 	 (tasks (select-tasks `((order (desc t.priority) (asc t.created_at) (asc t.id))
                                 (where ,conditions))
-			      (cons user (map (cut conc "%" <> "%") filters))))
+			      (cons user (map (cut sprintf "%~A%" <>) filters))))
 	 (tasks (map remove-sql-nulls (result->alists tasks))))
 
     (tasks-group-by groups tasks)))
