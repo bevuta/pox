@@ -116,7 +116,7 @@
 			   eq?)))
 	'()
 	(result->alists (db-query '(select (columns un.user_id un.params nh.name)
-                                     (from (join left
+                                     (from (join inner
                                                  (as user_notifications un)
                                                  (as notification_handlers nh)
                                                  (on (= nh.id un.handler_id)))))))))
