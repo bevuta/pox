@@ -1,3 +1,9 @@
+(include "sxml")
+
+(define (send-sxml-response page)
+  (send-response body: (sxml-page->html page)
+                 headers: '((content-type #(text/html ((charset . "utf-8")))))))
+
 (define (send-json-response doc)
   (send-response body: (json->string doc)
                  headers: '((content-type #(application/json ((charset . "utf-8")))))))
