@@ -129,11 +129,11 @@
 
 (define (task-with-user-names task)
   (fold (lambda (field task)
-	  (alist-update! (string->symbol field) 
-			 (alist-ref (alist-ref (string->symbol (conc field "_id")) task) (user-map))
+	  (alist-update! field 
+			 (alist-ref (alist-ref (string->symbol (sprintf "~A_id" field)) task) (user-map))
 			 task))
 	task
-	'("assigner" "assignee" "creator" "updater")))
+	'(assigner assignee creator updater)))
 
 (define (task-notifyees task)
   (define (user-field? f)
