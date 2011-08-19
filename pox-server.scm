@@ -1,7 +1,7 @@
 (module pox-server (pox-handler)
 
 (import chicken scheme ports data-structures)
-(use spiffy srfi-1 extras json intarweb spiffy-request-vars spiffy-uri-match pox-db/helpers pox-model downtime uri-common)
+(use spiffy srfi-1 extras medea intarweb spiffy-request-vars spiffy-uri-match pox-db/helpers pox-model downtime uri-common)
 
 (include "web")
 
@@ -20,7 +20,7 @@
                      include-done)))
         (http-accept-case (current-request)
           ((application/json) 
-           (send-json-response (map (cut list->vector <>) tasks)))
+           (send-json-response (list->vector tasks)))
           ((text/x-downtime)
            (if (or (not tasks) (null? tasks))
                (if (db-select-one 'users 'name user 'id)

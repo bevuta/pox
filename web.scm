@@ -1,5 +1,5 @@
 (define (send-json-response doc)
-  (send-response body: (with-output-to-string (cut json-write doc))
+  (send-response body: (json->string doc)
                  headers: '((content-type #(application/json ((charset . "utf-8")))))))
 
 (define-syntax http-accept-case 
