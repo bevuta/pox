@@ -9,26 +9,26 @@
   (if ls (with-input-from-string (format "(~A)" ls) read) '()))
 
 (define get-user-tasks
-  (let ((handle (http-accept-case (current-request)
-		  ((application/json) (json-response (lambda (user tasks omit-origin)
-						       (map (cut list->vector <>) tasks))))
-		  ((text/x-downtime)
-		   (lambda (user tasks omit-origin)
-		     (if (or (not tasks) (null? tasks))
-			 (if (db-select-one 'users 'name user 'id)
-			     (send-response code: 200 body: "")
-			     (send-response code: 404 reason: "Not Found"))
-			 (send-response headers: '((content-type #(text/x-downtime ((charset . "utf-8")))))
-					body: (task-list->string tasks
-								 user 
-								 (and (not omit-origin)
-								      (request-uri (current-request)))))))))))
+  (let ((handle (lambda (user tasks omit-origin)
+                  (http-accept-case (current-request)
+                    ((application/json) 
+                     (send-json-response (map (cut list->vector <>) tasks)))
+                    ((text/x-downtime)
+                     (if (or (not tasks) (null? tasks))
+                         (if (db-select-one 'users 'name user 'id)
+                             (send-response code: 200 body: "")
+                             (send-response code: 404 reason: "Not Found"))
+                         (send-response headers: '((content-type #(text/x-downtime ((charset . "utf-8")))))
+                                        body: (task-list->string tasks
+                                                                 user 
+                                                                 (and (not omit-origin)
+                                                                      (request-uri (current-request)))))))))))
 
     (lambda (continue user)
       (parameterize ((user-map (select-users)))
-	(let ((v (request-vars source: 'query-string))
-	      (user (string->user-name user)))
-	  (with-request-vars* v (group-by filter (include-done as-boolean) (omit-origin as-boolean))
+	(let ((user (string->user-name user)))
+	  (with-request-vars* (request-vars source: 'query-string)
+                              (group-by filter (include-done as-boolean) (omit-origin as-boolean))
 			      (handle user
 				      (select-user-tasks user 
 							 (list-string->list group-by)
