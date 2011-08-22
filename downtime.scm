@@ -106,19 +106,27 @@
 
 	 (parse-meta   (let* ((parts       `((assignee (seq ">" (* space) (submatch-named assignee (+ (~ space)))))
 					     (assigner (seq "<" (* space) (submatch-named assigner (+ (~ space)))))
-					     (priority (seq (submatch-named priority ("+-") (= 1 numeric))) ,string->number)
+					     (priority (seq (submatch-named priority ("+-") (= 1 numeric)))
+                                                       ,(lambda (key value meta)
+                                                          (alist-update! key (string->number value) meta)))
+                                             (tag      (seq ":" (submatch-named tag (+ (~ space))))
+                                                       ,(lambda (key value meta)
+                                                          (alist-update! 'tags (cons value (or (alist-ref 'tags meta) '())) meta)))
 					     (done     (seq (submatch-named done (or "done" "to do"))) 
-						       ,(lambda (d) (string=? d "done")))
+						       ,(lambda (key value meta) 
+                                                          (alist-update! key (string=? value "done") meta)))
 					     (category (seq (submatch-named category (or "uncategorized" (seq "/" (+ (~ space))))))
-						       ,(lambda (c) (if (string=? c "uncategorized") #f c)))))
+						       ,(lambda (key value meta) 
+                                                          (alist-update! key (if (string=? value "uncategorized") #f value) meta)))))
 
 			      (part-names   (map car parts))
-			      (conversions  (map (lambda (part)
+			      (append-meta  (map (lambda (part)
 						   (cons (car part) (if (null? (cddr part))
-									identity
+									alist-update!
 									(caddr part))))
 						 parts))
-			      (meta         (irregex `(seq (* space) (or ,@(map cadr parts)) (submatch-named rest (* any))))))
+                              (meta         (irregex `(seq (* space) (or ,@(map cadr parts)) 
+                                                           (submatch-named rest (* any))))))
 			 
 			 (lambda (meta-line)
 			   (and meta-line
@@ -130,10 +138,11 @@
 				      (let ((match (irregex-match meta rest)))
 					(if match
 					    (next (irregex-match-substring match 'rest)
-						  (alist-merge (map (lambda (pair)
-								      (cons (car pair)
-									    ((alist-ref (car pair) conversions) (cdr pair))))
-								    (irregex-match->alist match part-names)) result))
+						  (fold (lambda (pair result)
+                                                          ((alist-ref (car pair) append-meta)
+                                                           (car pair) (cdr pair) result))
+                                                        result
+                                                        (irregex-match->alist match part-names)))
 					    (error (format "invalid meta data: ~A" meta-line))))))))))
 
 	 (item         (let* ((name     `(seq (submatch-named name (* (~ "#")) (~ space "#")) (* space)))

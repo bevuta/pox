@@ -149,8 +149,8 @@ baz")
 (test-read '(((name . "some task") (revision . 2) (id . 10)))
 	   "* some task #10:2")
 
-(test-read-error "invalid meta data: :x"
-		 "* some task #10:x")
+(test-read-error "invalid meta data: .x"
+		 "* some task #10.x")
 
 
 (test-read '(((category . "/bar") (name . "foo"))) "* foo # /bar")
@@ -165,6 +165,10 @@ baz")
 ## /qux
 * quux
 * whoa # //absolute/fubar")
+
+(test-read '(((tags "baz" "bar") (name . "foo"))) "
+* foo # :bar :baz
+")
 
 (test-write "* bar #10  \n\n" "foo" '(((id . 10) (creator . "foo") (name . "bar"))))
 
