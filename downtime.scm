@@ -246,6 +246,14 @@
   (and (not (member 'category (scope))) 
        (alist-ref 'category task)))
 
+(define (task-tags->string task)
+  (let ((tags (alist-ref 'tags task)))
+    (and (not (member 'tags (scope)))
+         (not (null? tags))
+         (string-intersperse 
+          (map (lambda (tag) (sprintf ":~A" tag))
+               tags)))))
+
 (define (task-assignment->string task)
   (let ((assignee (alist-ref 'assignee task))
 	(assigner (alist-ref 'assigner task)))
@@ -279,6 +287,7 @@
 		       line)))
 	   (line (conc-if (task-assignment->string task) line))
 	   (line (conc-if (task-priority->string task) line))
+           (line (conc-if (task-tags->string task) line))
 	   (line (conc-if (task-category->string task) line))
 	   (line (conc-if (task-done->string task) line)))
       (conc line "  "))))
