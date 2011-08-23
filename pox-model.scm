@@ -224,8 +224,8 @@
 
 (define (select-tag-id tag)
   (or (db-select-one 'tags 'name tag 'id)
-      (db-query `(insert (into tags) (columns name) (values #($1)) (returning id))
-                (list tag))))
+      (value-at (db-query `(insert (into tags) (columns name) (values #($1)) (returning id))
+                          (list tag)))))
 
 (define (persist-tags task)
   (let* ((tags (alist-ref 'tags task))
@@ -279,11 +279,13 @@
                                        conditions: `(= revision ,(sub1 (alist-ref 'revision task))))))
 
 	 (save   (lambda (user-id task notifications)
-		   (let* ((old-task (select-task (alist-ref 'id task)))
-                          (old-task (and (< 0 (row-count old-task)) 
+		   (let* ((old-task (alist-ref 'id task))
+                          (old-task (and old-task (select-task old-task)))
+                          (old-task (and old-task
+                                         (< 0 (row-count old-task))
                                          (row-task old-task)))
 			  (task      (prepare user-id task old-task))
-			  (action    (if (alist-ref 'id task)
+			  (action    (if old-task
 					 (and (tasks-diff? old-task task) 'update)
 					 'insert))
 			  (statement (case action
