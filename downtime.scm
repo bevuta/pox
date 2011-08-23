@@ -53,7 +53,11 @@
 				     (alist-ref 'category data)))
 	 (data (if category 
 		   (alist-update! 'category category (alist-copy data))
-		   data)))
+		   data))
+         (data (alist-update! 'tags
+                              (append (or (alist-ref 'tags task) '())
+                                      (or (alist-ref 'tags data) '()))
+                              data)))
     (alist-merge data task)))
 
 (define (alist-convert! key conversion alist)
