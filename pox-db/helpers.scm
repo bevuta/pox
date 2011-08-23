@@ -24,9 +24,10 @@
 (define (alist->ssql-insert table alist)
   (cons `(insert (into ,table) 
                  (columns . ,(map car alist))
-                 (values ,(list-tabulate (length alist) 
-                                         (lambda (p) 
-                                           (string->symbol (sprintf "$~A" (add1 p)))))))
+                 (values ,(list->vector
+                           (list-tabulate (length alist) 
+                                          (lambda (p) 
+                                            (string->symbol (sprintf "$~A" (add1 p))))))))
         (map cdr alist)))
 
 (define (alist->ssql-update table alist #!key (pkey 'id) conditions)
