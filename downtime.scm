@@ -240,22 +240,29 @@
 
 ;; writing
 
+(define (scoped? attr)
+  (filter (lambda (scope)
+            (eq? attr (car scope)))
+          (scope)))
+
 (define (task-priority->string task)
-  (and (not (member 'priority (scope)))
+  (and (not (scoped? 'priority))
        (let ((priority (alist-ref 'priority task)))
 	 (and priority (not (zero? priority)) 
 	      (format-task-attribute 'priority priority)))))
 
 (define (task-category->string task)
-  (and (not (member 'category (scope))) 
+  (and (not (scoped? 'category)) 
        (alist-ref 'category task)))
 
 (define (task-tags->string task)
-  (let ((tags (alist-ref 'tags task)))
-    (and (not (member 'tags (scope)))
-         (not (null? tags))
+  (let* ((scope-tags (map caadr (scoped? 'tags)))
+         (tags       (alist-ref 'tags task))
+         (tags       (lset-difference equal? tags scope-tags)))
+    (and (not (null? tags))
          (string-intersperse 
-          (map (lambda (tag) (sprintf ":~A" tag))
+          (map (lambda (tag)
+                 (format-task-attribute 'tags tag))
                tags)))))
 
 (define (task-assignment->string task)
@@ -263,9 +270,9 @@
 	(assigner (alist-ref 'assigner task)))
     (and (not (equal? assignee assigner))
 	 (if (not (equal? assigner (current-user)))
-	     (and (not (member 'assigner (scope)))
+	     (and (not (scoped? 'assigner))
 		  (format-task-attribute 'assigner assigner))
-	     (and (not (member 'assignee (scope)))
+	     (and (not (scoped? 'assignee))
 		  (format-task-attribute 'assignee assignee))))))
 
 (define (task-done->string t)
@@ -277,7 +284,8 @@
     ((assigner) (conc "< " value))
     ((assignee) (conc "> " value))
     ((category) (or value "uncategorized"))
-    ((done)     (if value "done" "to do"))))
+    ((done)     (if value "done" "to do"))
+    ((tags)     (sprintf ":~A" value))))
 
 (define (conc-if s1 s2)
   (if s1 (conc s2 " " s1) s2))
@@ -310,7 +318,7 @@
 (define (downtime-write-internal tasks)
   (match tasks
     (('group group groupings ...)
-     (parameterize ((scope (cons group (scope))))
+     (parameterize ((scope (alist-cons group groupings (scope))))
        (let ((heading (make-string (length (scope)) #\#)))
 	 (for-each (lambda (grouping)
 		     (print heading " " (format-task-attribute group (car grouping)))
@@ -326,3 +334,4 @@
     (downtime-write-internal tasks)))
 
 )
+

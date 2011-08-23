@@ -113,15 +113,28 @@
 
 (define (tasks-group-by groups tasks)
   (if (and groups (pair? groups))
-      (let ((group (car groups)))
+      (let* ((group     (car groups))
+             (group-str (symbol->string group))
+             (tag       (and (eq? #\: (string-ref group-str 0))
+                             (string-drop group-str 1)))
+             (group     (if tag 'tags group)))
 	(cons* 'group
 	       group
 	       (map (lambda (pair)
 		      (cons (car pair) (tasks-group-by (cdr groups) (cdr pair))))
-		    (fold-right (lambda (task result)
-				  (let ((value (alist-ref group task)))
-				    (alist-update! value (cons task (alist-ref value result equal? '()))
-						   result equal?))) '() tasks))))
+                    (fold-right (lambda (task result)
+                                  (let* ((value     (alist-ref group task))
+                                         (included? (or (not tag) (and value (member tag value equal?))))
+                                         (value     (if (and tag included?)
+                                                        tag
+                                                        value)))
+                                    (if included?
+                                        (alist-update! value 
+                                                       (cons task (alist-ref value result equal? '()))
+                                                       result equal?)
+                                        result)))
+                                '()
+                                tasks))))
       tasks))
 
 (define (->number s)
