@@ -45,3 +45,14 @@ CREATE TABLE user_notifications (
        handler_id INTEGER NOT NULL REFERENCES notification_handlers (id),
        params TEXT
 );
+
+CREATE TABLE tags (
+       id SERIAL PRIMARY KEY,
+       name TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE task_tags (
+       id SERIAL PRIMARY KEY,
+       task_id INTEGER NOT NULL REFERENCES tasks (id),
+       tag_id INTEGER NOT NULL REFERENCES tags (id)
+);

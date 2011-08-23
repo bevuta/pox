@@ -52,22 +52,43 @@
 (define (remove-sql-nulls l)
   (remove (compose sql-null? cdr) l))
 
+(define task-query-columns
+  `(t.id t.revision t.name t.description t.priority t.done t.category
+    (as (coalesce 
+         (select (call array_agg name)
+           (from (join inner 
+                       tags
+                       (as task_tags tt)
+                       (on (= tt.tag_id tags.id))))
+           (where (= tt.task_id t.id)))
+         (call cast (as "{}" |text[]|)))
+        tags)))
+
+(define full-tasks-query
+  `(select (columns (as u1.name assignee)
+                    (as u2.name assigner)
+                    (as u3.name creator)
+                    . ,task-query-columns)
+     (from (join left
+                 (join left
+                       (join left 
+                             (as tasks t) 
+                             (as users u1) 
+                             (on (= t.assignee_id u1.id))) 
+                       (as users u2) 
+                       (on (= t.assigner_id u2.id)))
+                 (as users u3)
+                 (on (= t.creator_id u3.id))))))
+
+(define task-query
+  `(select (columns t.creator_id t.assigner_id t.assignee_id . ,task-query-columns)
+     (from (as tasks t))))
+
 (define (select-tasks #!optional (additional '()) (vars '()))
-  (db-query (db-compose-query
-             '(select (columns t.id t.revision t.name t.description t.priority t.done t.category
-                               (as u1.name assignee) (as u2.name assigner) (as u3.name creator))
-                (from (join left
-                            (join left
-                                  (join left 
-                                        (as tasks t) 
-                                        (as users u1) 
-                                        (on (= t.assignee_id u1.id))) 
-                                  (as users u2) 
-                                  (on (= t.assigner_id u2.id)))
-                            (as users u3)
-                            (on (= t.creator_id u3.id)))))
-             additional) 
-	    vars))
+  (db-query (db-compose-query full-tasks-query additional) vars))
+
+(define (select-task id)
+  (db-query (db-compose-query task-query `((where (= id ,id))))))
 
 (define (select-user-tasks user #!optional groups (filters '()) (include-done #f))
   (let* ((conditions '(in $1 #(u1.name u2.name u3.name)))
@@ -83,10 +104,10 @@
 	 (conditions (if include-done 
 			 conditions
                          `(and (= done #f) ,conditions)))
-	 (tasks (select-tasks `((order (desc t.priority) (asc t.created_at) (asc t.id))
-                                (where ,conditions))
-			      (cons user (map (cut sprintf "%~A%" <>) filters))))
-	 (tasks (map remove-sql-nulls (result->alists tasks))))
+	 (result (select-tasks `((order (desc t.priority) (asc t.created_at) (asc t.id))
+                                 (where ,conditions))
+                               (cons user (map (cut sprintf "%~A%" <>) filters))))
+	 (tasks (result->tasks result #t)))
 
     (tasks-group-by groups tasks)))
 
@@ -122,10 +143,13 @@
                                                  (on (= nh.id un.handler_id)))))))))
 
 (define (tasks-diff? task1 task2)
-  (any (lambda (col)
-	 (not (equal? (alist-ref col task2)
-		      (alist-ref col task1))))
-       '(description name done assignee_id assigner_id priority category)))
+  (or (any (lambda (col)
+             (not (equal? (alist-ref col task2)
+                          (alist-ref col task1))))
+           '(description name done assignee_id assigner_id priority category))
+      (not (lset= equal? 
+                  (or (alist-ref 'tags task1) '())
+                  (or (alist-ref 'tags task2) '())))))
 
 (define (task-with-user-names task)
   (fold (lambda (field task)
@@ -154,8 +178,8 @@
      (with-db-connection 
       (lambda ()
 	(parameterize ((user-map (select-users)))
-	  (let ((task     (and task (remove-sql-nulls (task-with-user-names task))))
-		(old-task (and old-task (remove-sql-nulls (task-with-user-names old-task)))))
+	  (let ((task     (and task (task-with-user-names task)))
+		(old-task (and old-task (task-with-user-names old-task))))
 
 	    (for-each (lambda (notification)
 			(let ((user (car notification)))
@@ -178,6 +202,56 @@
 			      (map (cut assq <> notifications)
 				   (task-notifyees task)))))))))))
 
+(define (row-task row #!optional remove-sql-nulls? (num 0))
+  (let* ((task (row-alist row num))
+         (task (if remove-sql-nulls? (remove-sql-nulls task) task))
+         (tags (alist-ref 'tags task)))
+    (alist-update! 'tags (vector->list tags) task)))
+
+(define (result->tasks result #!optional remove-sql-nulls?)
+  (map (lambda (i)
+         (row-task result remove-sql-nulls? i))
+       (iota (row-count result))))
+
+(define (select-task-tags task-id)
+  (result->alists
+   (db-query `(select (columns tt.id t.name)
+                (from (join inner 
+                            (as task_tags tt)
+                            (as tags t)
+                            (on (= t.id tt.tag_id))))
+                (where (= tt.task_id ,task-id))))))
+
+(define (select-tag-id tag)
+  (or (db-select-one 'tags 'name tag 'id)
+      (db-query `(insert (into tags) (columns name) (values #($1)) (returning id))
+                (list tag))))
+
+(define (persist-tags task)
+  (let* ((tags (alist-ref 'tags task))
+         (tags (and tags (delete-duplicates tags equal?)))
+         (id   (alist-ref 'id task)))
+    (if (or (not tags) (null? tags))
+        (db-query `(delete (from task_tags) (where (= task_id ,id))))
+        (let* ((old-tags (fold (lambda (tag old-tags)
+                                 (let ((old-tags* (remove (lambda (old-tag)
+                                                            (equal? tag (alist-ref 'name old-tag)))
+                                                          old-tags)))
+                                   (when (= (length old-tags) (length old-tags*))
+                                     (db-query `(insert (into task_tags) 
+                                                        (columns task_id tag_id)
+                                                        (values #($1 $2)))
+                                               (list id (select-tag-id tag))))
+                                   old-tags*))
+                               (select-task-tags id)
+                               tags))
+               (old-tags (map (lambda (tag) 
+                                (alist-ref 'id tag))
+                              old-tags)))
+          (unless (null? old-tags)
+            (db-query `(delete (from task_tags) 
+                               (where (in id ,(list->vector old-tags))))))))))
+
 (define persist-user-tasks
   (let* ((prepare (lambda (user-id task old-task)
 		    (let* ((task (alist-merge `((description . ,(or (alist-ref 'description task) (sql-null)))
@@ -195,15 +269,19 @@
 		      task)))
 
 	 (insert (lambda (task user-id)
-		   (alist->ssql-insert 'tasks (alist-delete 'revision (alist-update! 'creator_id user-id task)))))
+                   (let* ((task (alist-update! 'creator_id user-id task))
+                          (task (alist-delete 'revision task))
+                          (task (alist-delete 'tags task)))
+                     (alist->ssql-insert 'tasks task))))
 
 	 (update (lambda (task user-id)
-		   (alist->ssql-update 'tasks task conditions: `(= revision ,(sub1 (alist-ref 'revision task))))))
+		   (alist->ssql-update 'tasks (alist-delete 'tags task)
+                                       conditions: `(= revision ,(sub1 (alist-ref 'revision task))))))
 
 	 (save   (lambda (user-id task notifications)
-		   (let* ((old-task  (alist-ref 'id task))
-			  (old-task  (and old-task (db-select 'tasks 'id old-task)))
-			  (old-task  (and old-task (row-alist old-task)))
+		   (let* ((old-task (select-task (alist-ref 'id task)))
+                          (old-task (and (< 0 (row-count old-task)) 
+                                         (row-task old-task)))
 			  (task      (prepare user-id task old-task))
 			  (action    (if (alist-ref 'id task)
 					 (and (tasks-diff? old-task task) 'update)
@@ -212,7 +290,7 @@
 				       ((update) (update task user-id))
 				       ((insert) (insert task user-id))
 				       (else #f)))
-			  (result    (and statement 
+			  (result    (and statement
 					  (db-query (db-compose-query (car statement) '((returning id revision)))
                                                     (cdr statement))))
 			  (task      (if (and result (not (zero? (row-count result))))
@@ -223,6 +301,7 @@
 		     (or (not affected)
 			 (and (= 1 affected)
 			      (begin
+                                (persist-tags task)
 				(task-notify notifications action task old-task)
 				#t)))))))
 
@@ -233,8 +312,8 @@
             (fold-right (lambda (task conflicts)
                           (if (save user-id task notifications)
                               conflicts
-                              (let* ((new-task (select-tasks '((where (= t.id $1))) (list (alist-ref 'id task))))
-                                     (new-task (and (< 0 (row-count new-task)) (row-alist new-task)))
+                              (let* ((new-task (select-tasks `((where (= t.id ,(alist-ref 'id task))))))
+                                     (new-task (and (< 0 (row-count new-task)) (row-task new-task #t)))
                                      (task (if new-task
                                                (alist-update! 'revision (alist-ref 'revision new-task) task)
                                                task)))
@@ -248,7 +327,7 @@
 (define (conflicts->string conflicts user)
   (string-intersperse (map (lambda (conflict) 
 			     (string-intersperse (map (lambda (task) 
-							(task->string (remove-sql-nulls task) user)) conflict)
+							(task->string task user)) conflict)
 						 "\n# ---\n\n"))
 			   conflicts)
 		      "\n\n# =====\n\n"))
