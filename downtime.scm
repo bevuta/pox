@@ -54,10 +54,11 @@
 	 (data (if category 
 		   (alist-update! 'category category (alist-copy data))
 		   data))
-         (data (alist-update! 'tags
-                              (append (or (alist-ref 'tags task) '())
-                                      (or (alist-ref 'tags data) '()))
-                              data)))
+         (tags (append (or (alist-ref 'tags task) '())
+                       (or (alist-ref 'tags data) '())))
+         (data (if (null? tags)
+                   data
+                   (alist-update! 'tags tags data))))
     (alist-merge data task)))
 
 (define (alist-convert! key conversion alist)
@@ -240,10 +241,14 @@
 
 ;; writing
 
-(define (scoped? attr)
+
+(define (filter-scope attr)
   (filter (lambda (scope)
             (eq? attr (car scope)))
           (scope)))
+
+(define (scoped? attr)
+  (pair? (filter-scope attr)))
 
 (define (task-priority->string task)
   (and (not (scoped? 'priority))
@@ -256,8 +261,8 @@
        (alist-ref 'category task)))
 
 (define (task-tags->string task)
-  (let* ((scope-tags (map caadr (scoped? 'tags)))
-         (tags       (alist-ref 'tags task))
+  (let* ((scope-tags (map caadr (filter-scope 'tags)))
+         (tags       (or (alist-ref 'tags task) '()))
          (tags       (lset-difference equal? tags scope-tags)))
     (and (not (null? tags))
          (string-intersperse 
