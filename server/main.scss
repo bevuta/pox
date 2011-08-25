@@ -2,6 +2,13 @@
   (load "colors")
 
   `(css+ 
+    (button
+     (display block)
+     (clear both))
+
+    ((input button textarea)
+     (display block))
+
     (|#messages|
      (position absolute)
      (right 3em)

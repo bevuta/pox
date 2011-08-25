@@ -17,7 +17,6 @@
      (top 0))
 
     ((input button textarea)
-     (display block)
      (font-family monospace)
      (background ,foreground)
      (color white)
@@ -26,8 +25,9 @@
      (padding .5em))
 
     (button
-     (display block)
-     (clear both)
      (border none)
      (background ,foreground)
-     (color white))))
+     (color white))
+
+    (label
+     (padding "0 1em"))))

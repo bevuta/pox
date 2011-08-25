@@ -7,6 +7,10 @@ var tag = function(tag, attrs) {
 $(function() {
     var controls = tag("div", { id: "controls" });
     var columns  = tag("tr");
+    var user     = tag("input", { id: "user" })
+        .appendTo(controls)
+        .before(tag("label", { for: "user" }).text("User"));
+    var load   = tag("button").text("Load").appendTo(controls);
     
     $("body")
         .append(controls)
