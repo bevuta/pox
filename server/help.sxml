@@ -1,0 +1,42 @@
+((h2 "Help")
+ (h3 "Syntax")
+ (pre "task     = \"*\" <name> <meta>? (\"\\\\n\" <description>)? \n"
+      "name     = [^#\\\\n]+\n"
+      "meta     = \"#\" (<id> (\":\" <revision>)?)? <property>*\n"
+      "id       = [:digit:]+\n"
+      "revision = [:digit:]+\n"
+      "property = \">\" <assignee> | \"<\" <assigner> | \n"
+      "           [+-] <priority> | \":\" <tag>\n"
+      "grouping = \"#\"+ <property>*")
+ (h3 "Task Examples")
+ (dl
+  (dt "A new task for yourself:")
+  (dd (pre "* do something"))
+  (dt "An existing task with the ID 274, revision 2:")
+  (dd (pre "* make stuff #274:2"))
+  (dt "Delegate task to user frank:")
+  (dd (pre "* fix it # > frank"))
+  (dt "A task with priority 9 assigned to you by joe:")
+  (dd (pre "* add frob feature # +9 < joe")))
+ (h3 "Grouping")
+ (p "Tasks can be grouped by preceding them with a <grouping>
+line. Groupings can be nested, nesting levels are indicated by the
+amount of leading \"#\" characters. Groupings cascade their properties
+to all tasks below their level.")
+ (h3 "Grouping Examples")
+ (dl
+  (dt "Two tasks for frank:")
+  (dd (pre "# > frank\n"
+           "* do this # +2\n"
+           "* do that"))
+  (dt "Priorities are assigned from the nearest grouping:")
+  (dd (pre "# +9 :bug\n"
+           "* this is priority +9 and tagged 'bug'\n"
+           "## -5\n"
+           "* this is priority -5 and also tagged 'bug'\n"
+           "* this is priority +1 and also tagged 'bug' # +1"))
+  (dt "Tags are cascaded additively:")
+  (dd (pre "# :bug\n"
+           "* this is an important bug # :important\n"
+           "## :critical\n"
+           "* this is a critical bug"))))
