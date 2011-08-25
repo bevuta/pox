@@ -1,8 +1,5 @@
-(let ((background "#3f3f3f")
-      (foreground "#4f4f4f")
-      (text "#dcdccc")
-      (highlight "#f0dfaf"))
-
+(begin
+  (load "colors")
   `(css+ 
     (body
      (font-size 12px)
@@ -33,75 +30,4 @@
      (clear both)
      (border none)
      (background ,foreground)
-     (color white))
-
-    (|#messages|
-     (position absolute)
-     (right 3em)
-     (top 4em))
-
-    (|#controls|
-     (padding .5em)
-     (padding-bottom 1.5em)
-     (position relative)
-     (margin-bottom 1em)
-
-     ((// label) 
-      (font-size 1em)
-      (display block)
-      (width 7em)
-      (float left)
-      (line-height 2em))
-
-     ((// input)
-      (font-size 1em)
-      (width 30em)
-      (margin-right 0px))
-
-     ((// |input[type=checkbox]|)
-      (float left)
-      (width auto)
-      (margin-left 8em)
-      (margin-right .5em))
-
-
-     ((// button)
-      (font-size 1em)
-      (position absolute)
-
-      ((& |#show-tasks|)
-       (width 5em)
-       (left 33.5em)
-       (top 8em))
-
-      ((& |#show-help|)
-       (right 1em)))
-
-     ((// |label[for=include-done]|)
-      (width auto)))
-
-    (|#tasks|
-     (padding .5em)
-
-     ((// textarea)
-      (float left)
-      (font-size 1em)
-      (width 98%)
-      (height 38em)
-      (border none)
-      (padding .5em)
-      (clear both))
-
-     ((// button) 
-      (float right)
-      (margin-right .7em)))
-
-    (|#help|
-     (background ,foreground)
-     (display none)
-     (float right)
-
-     ((// .content)
-      (margin .5em))
-     ((// dd) 
-      (margin-left 1em)))))
+     (color white))))

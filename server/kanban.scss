@@ -1,0 +1,10 @@
+(begin
+  (load "colors")
+  `(css+
+    (|#columns|
+     (width 100%)
+     ((// td)
+      (min-width 20em)
+      (border-color ,foreground)
+      (border-width 1px)
+      (border-style solid)))))

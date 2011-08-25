@@ -1,0 +1,3 @@
+scss2css kanban.scss  > static/kanban/kanban.css
+scss2css layout.scss  > static/layout.css
+scss2css main.scss  > static/main.css
