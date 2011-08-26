@@ -44,19 +44,32 @@ var simpleFormat = function(text) {
     return result.html();
 };
 
+var addColumnTo = function(columns) {
+    return function() {
+        var col = tag("td", { class: "column" }).appendTo(columns);
+
+        tag("input", { class: "tag" })
+            .appendTo(col)
+            .focus(); 
+
+        tag("div", { class: "tasks" })
+            .appendTo(col);
+    };
+};
+
 var loadTasks = function() {
     var baseuri = "/users/" +
         encodeURIComponent($("#user").val()) +
         "/tasks?filter=" +
-        encodeURIComponent($("#gfilter").val());
+        encodeURIComponent($("#filter").val());
 
     $(".column").each(function() {
         var col = $(this);
-        var filter = col.find(".filter").val();
+        var coltag = $.trim(col.find(".tag").val());
         var uri = baseuri;
 
-        if (filter.length) {
-            uri += encodeURIComponent(" " + filter);
+        if (coltag.length) {
+            uri += encodeURIComponent(" :" + coltag);
         }
 
         $.ajax({
@@ -84,20 +97,11 @@ $(function() {
     var controls = tag("div", { id: "controls" });
     var columns  = tag("tr");
     var user     = input("user", "User", controls).val($.query.get("user"));
-    var gfilter  = input("gfilter", "Filter", controls).val($.query.get("filter"));
+    var filter   = input("filter", "Filter", controls).val($.query.get("filter"));
 
     tag("button")
         .text("Add column")
-        .click(function() {
-            var col = tag("td", { class: "column" }).appendTo(columns);
-
-            tag("input", { class: "filter" })
-                .appendTo(col)
-                .focus(); 
-
-            tag("div", { class: "tasks" }).
-                appendTo(col);
-        })
+        .click(addColumnTo(columns))
         .appendTo(controls);
 
     tag("button")
