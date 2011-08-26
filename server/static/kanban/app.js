@@ -52,7 +52,12 @@
 
             tag("input", { class: "tag" })
                 .appendTo(col)
-                .focus(); 
+                .keyup(function(ev) {
+                    if (ev.which == 13) {
+                        loadTasks();
+                    }
+                })
+                .focus();
 
             tag("div", { class: "tasks" })
                 .appendTo(col);
