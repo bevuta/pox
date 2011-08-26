@@ -18,11 +18,14 @@
 
     ((input button textarea)
      (font-family monospace)
+     (font-size 1em)
+     (line-height 2em)
      (background ,foreground)
      (color white)
      (border none)
      (margin-bottom .2em)
-     (padding .5em))
+     ((& :focus)
+      (background ,foreground*)))
 
     (button
      (border none)

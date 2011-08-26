@@ -51,7 +51,7 @@
             var col = tag("td", { class: "column" }).appendTo(columns);
 
             tag("input", { class: "tag" })
-                .appendTo(col)
+                .appendTo(tag("div", { class: "wrap" }).appendTo(col))
                 .keyup(function(ev) {
                     if (ev.which == 13) {
                         loadTasks();
@@ -99,10 +99,15 @@
                     var container = tag("ul");
 
                     $.each(tasks, function() {
+                        var info = tag("div", { class: "info" })
+                            .hide()
+                            .html(simpleFormat(this.description));
+
                         tag("li", { class: "task" })
-                            .append(tag("h2").text(this.name))
-                            .append(tag("div", { class: "description" })
-                                    .html(simpleFormat(this.description)))
+                            .append(tag("h2").text(this.name).click(function() {
+                                info.slideToggle("fast");
+                            }))
+                            .append(info)
                             .appendTo(container);
                     });
 
