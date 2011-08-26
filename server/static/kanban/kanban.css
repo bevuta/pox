@@ -1,1 +1,1 @@
-#controls { padding: 1em 0 } #columns td { width: 20em; border-color: #4f4f4f; border-width: 1px; border-style: solid } #columns td .filter { min-width: 20em } 
+#controls { padding: 1em 0 } #columns { border-spacing: 1em } #columns td { width: 20em; border-color: #4f4f4f; border-width: 1px; border-style: solid; vertical-align: top } #columns td .filter { min-width: 20em } 

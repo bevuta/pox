@@ -4,9 +4,11 @@ var tag = function(tag, attrs) {
     return el;
 };
 
-var input = function(id, label) {
-    return tag("input", { id: id })
-        .before(tag("label", { for: id }).text(label));
+var input = function(id, label, target) {
+    var el = tag("input", { id: id });
+    el.appendTo(target);
+    el.before(tag("label", { for: id }).text(label));
+    return el;
 };
 
 var loadTasks = function() {
@@ -29,8 +31,13 @@ var loadTasks = function() {
             dataType: "json",
             url: uri,
             success: function(tasks) {
-                col.find(".tasks")
-                    .text(tasks);
+                var container = tag("ul");
+
+                $.each(tasks, function() {
+                    tag("li").text(this.name).appendTo(container);
+                });
+
+                col.find(".tasks").html(container);
             }
         });
     });
@@ -39,8 +46,8 @@ var loadTasks = function() {
 $(function() {
     var controls = tag("div", { id: "controls" });
     var columns  = tag("tr");
-    var user     = input("user", "User").appendTo(controls);
-    var gfilter  = input("gfilter", "Filter").appendTo(controls);
+    var user     = input("user", "User", controls).val($.query.get("user"));
+    var gfilter  = input("gfilter", "Filter", controls).val($.query.get("filter"));
 
     tag("button")
         .text("Add column")

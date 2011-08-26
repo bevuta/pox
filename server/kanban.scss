@@ -4,11 +4,13 @@
     (|#controls|
      (padding "1em 0"))
     (|#columns|
+     (border-spacing 1em)
      ((// td)
       (width 20em)
       (border-color ,foreground)
       (border-width 1px)
       (border-style solid)
+      (vertical-align top)
 
       ((// .filter)
        (min-width 20em))))))
