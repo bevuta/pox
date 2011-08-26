@@ -61,7 +61,19 @@
 
             tag("div", { class: "tasks" })
                 .appendTo(col);
+
+            return col;
         };
+    };
+
+    var addColumnsFromQueryString = function(columns) {
+        var add = addColumnTo(columns);
+
+        $.each(($.query.get("columns") || "").split(" "), function(i, col) {
+            if (col.length) {
+                add().find(".tag").val(col);
+            }
+        });
     };
 
     var loadTasks = function() {
@@ -116,10 +128,14 @@
             .appendTo(controls)
             .click(loadTasks);
 
+
         $("body")
             .append(controls)
             .append(tag("table", { id: "columns" })
                     .append(columns));
+
+        addColumnsFromQueryString(columns);
+        loadTasks();
     });
 
 })();
