@@ -14,7 +14,6 @@ var loadTasks = function() {
         encodeURIComponent($("#user").val()) +
         "/tasks?filter=" +
         encodeURIComponent($("#gfilter").val());
-    console.log(encodeURIComponent($("#gfilter").val()));
 
     $(".column").each(function() {
         var col = $(this);
@@ -30,7 +29,6 @@ var loadTasks = function() {
             dataType: "json",
             url: uri,
             success: function(tasks) {
-                console.log(tasks);
                 col.find(".tasks")
                     .text(tasks);
             }
