@@ -29,7 +29,7 @@
     var simpleFormat = function(text) {
         var result = $("<div/>");
 
-        $.each(text.split("\n\n"), function(i, body) {
+        $.each((text || "").split("\n\n"), function(i, body) {
             var p = tag("p");
 
             $.each(intersperse($.trim(body).split("\n"), $("<br/>")), function(i, el) {
