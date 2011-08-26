@@ -53,63 +53,56 @@
   (remove (compose sql-null? cdr) l))
 
 (define task-query-columns
-  `(t.id t.revision t.name t.description t.priority t.done t.category
-    (as (coalesce 
-         (select (call array_agg name)
-           (from (join inner 
-                       tags
-                       (as task_tags tt)
-                       (on (= tt.tag_id tags.id))))
-           (where (= tt.task_id t.id)))
-         (call cast (as "{}" |text[]|)))
-        tags)))
+  '(id created_at revision name description priority done category tags))
 
-(define full-tasks-query
-  `(select (columns (as u1.name assignee)
-                    (as u2.name assigner)
-                    (as u3.name creator)
-                    . ,task-query-columns)
-     (from (join left
-                 (join left
-                       (join left 
-                             (as tasks t) 
-                             (as users u1) 
-                             (on (= t.assignee_id u1.id))) 
-                       (as users u2) 
-                       (on (= t.assigner_id u2.id)))
-                 (as users u3)
-                 (on (= t.creator_id u3.id))))))
+(define tasks-query
+  `(select (columns creator assigner assignee . ,task-query-columns)
+     (from tasks_with_tags)))
 
 (define task-query
-  `(select (columns t.creator_id t.assigner_id t.assignee_id . ,task-query-columns)
-     (from (as tasks t))))
+  `(select (columns creator_id assigner_id assignee_id . ,task-query-columns)
+     (from tasks_with_tags)))
 
 (define (select-tasks #!optional (additional '()) (vars '()))
-  (db-query (db-compose-query full-tasks-query additional) vars))
+  (db-query (db-compose-query tasks-query additional) vars))
 
 (define (select-task id)
   (db-query (db-compose-query task-query `((where (= id ,id))))))
 
-(define (select-user-tasks user #!optional groups (filters '()) (include-done #f))
-  (let* ((conditions '(in $1 #(u1.name u2.name u3.name)))
-         (conditions (if (pair? filters)
-			 `(and ,conditions
-                               . ,(map (lambda (i)
-                                         (let ((var (string->symbol (sprintf "$~A" i))))
-                                           `(or (like t.name ,var)
-                                                (like t.description ,var)
-                                                (like t.category ,var))))
-                                       (iota (length filters) 2)))
-                         conditions))
-	 (conditions (if include-done 
-			 conditions
-                         `(and (= done #f) ,conditions)))
-	 (result (select-tasks `((order (desc t.priority) (asc t.created_at) (asc t.id))
-                                 (where ,conditions))
-                               (cons user (map (cut sprintf "%~A%" <>) filters))))
-	 (tasks (result->tasks result #t)))
+(define (prepare-filters filters)
+  (partition (lambda (filter)
+               (eq? #\: (string-ref filter 0)))
+             (filter (lambda (filter)
+                       (> (string-length filter) 1))
+                     filters)))
 
-    (tasks-group-by groups tasks)))
+(define (select-user-tasks user #!optional groups (filters '()) (include-done #f))
+  (receive (tag-filters filters)
+      (prepare-filters (map symbol->string filters))
+    (let* ((conditions '(in $1 #(assignee assigner creator)))
+           (conditions (if (pair? filters)
+                           `(and ,conditions
+                                 . ,(map (lambda (i)
+                                           (let ((var (string->symbol (sprintf "$~A" i))))
+                                             `(or (like name ,var)
+                                                  (like description ,var)
+                                                  (like category ,var))))
+                                         (iota (length filters) 2)))
+                           conditions))
+           (tag-filters (map (lambda (f) (string-drop f 1)) tag-filters))
+           (conditions (if (pair? tag-filters)
+                           `(and ,conditions
+                                 (@> tags (array . ,tag-filters)))
+                           conditions))
+           (conditions (if include-done 
+                           conditions
+                           `(and (= done #f) ,conditions)))
+           (result (select-tasks `((order (desc priority) (asc created_at) (asc id))
+                                   (where ,conditions))
+                                 (cons user (map (cut sprintf "%~A%" <>) filters))))
+           (tasks (result->tasks result #t)))
+
+      (tasks-group-by groups tasks))))
 
 (define (tasks-group-by groups tasks)
   (if (and groups (pair? groups))
