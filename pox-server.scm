@@ -32,7 +32,7 @@
                      include-done)))
         (http-accept-case (current-request)
           ((application/json) 
-           (send-json-response (list->vector tasks)))
+           (send-json-response (task-list->json-serializable tasks)))
           ((text/x-downtime)
            (if (or (not tasks) (null? tasks))
                (if (db-select-one 'users 'name user 'id)

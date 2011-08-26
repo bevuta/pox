@@ -10,6 +10,7 @@
  select-user-tasks
  conflicts->string
  task-list->string
+ task-list->json-serializable
  with-db-connection)
 
 (import chicken scheme ports srfi-1 srfi-13 data-structures extras)
@@ -339,5 +340,11 @@
 						 "\n# ---\n\n"))
 			   conflicts)
 		      "\n\n# =====\n\n"))
+
+(define (task-list->json-serializable tasks)
+  (list->vector (map (lambda (task)
+                       (let ((tags (or (alist-ref 'tags task) '())))
+                         (alist-update! 'tags (list->vector tags) task)))
+                     tasks)))
 
 )
