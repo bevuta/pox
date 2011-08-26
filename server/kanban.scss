@@ -3,6 +3,7 @@
   `(css+
     (|#controls|
      (padding "1em 0"))
+
     (|#columns|
      (border-spacing 1em)
      ((// td)
@@ -13,4 +14,14 @@
       (vertical-align top)
 
       ((// .filter)
-       (min-width 20em))))))
+       (min-width 20em))))
+
+    (.tasks
+     ((> ul)
+      (list-style none)
+      (padding "0 1em")
+      (margin 0))
+     
+     ((// h2)
+      (font-weight bold)
+      (font-size 1em)))))

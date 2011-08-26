@@ -11,6 +11,39 @@ var input = function(id, label, target) {
     return el;
 };
 
+var intersperse = function(array, sep) {
+    if (!array.length) return array;
+    
+    var result = [array[0]];
+    
+    $.each(array.slice(1), function(i, e) {
+        result.push(sep);
+        result.push(e)
+    });
+
+    return result;
+};
+
+var simpleFormat = function(text) {
+    var result = $("<div/>");
+
+    $.each(text.split("\n\n"), function(i, body) {
+        var p = tag("p");
+
+        $.each(intersperse($.trim(body).split("\n"), $("<br/>")), function(i, el) {
+            if (typeof el == "string") {
+                p.append($("<div/>").text(el).text());
+            } else {
+                p.append(el);
+            }
+        });
+
+        result.append(p);
+    });
+
+    return result.html();
+};
+
 var loadTasks = function() {
     var baseuri = "/users/" +
         encodeURIComponent($("#user").val()) +
@@ -34,7 +67,11 @@ var loadTasks = function() {
                 var container = tag("ul");
 
                 $.each(tasks, function() {
-                    tag("li").text(this.name).appendTo(container);
+                    tag("li", { class: "task" })
+                        .append(tag("h2").text(this.name))
+                        .append(tag("div", { class: "description" })
+                                .html(simpleFormat(this.description)))
+                        .appendTo(container);
                 });
 
                 col.find(".tasks").html(container);
