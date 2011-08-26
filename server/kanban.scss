@@ -1,10 +1,14 @@
 (begin
   (load "colors")
   `(css+
+    (|#controls|
+     (padding "1em 0"))
     (|#columns|
-     (width 100%)
      ((// td)
-      (min-width 20em)
+      (width 20em)
       (border-color ,foreground)
       (border-width 1px)
-      (border-style solid)))))
+      (border-style solid)
+
+      ((// .filter)
+       (min-width 20em))))))
