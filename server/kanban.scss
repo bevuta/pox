@@ -19,7 +19,7 @@
       ((// input)
        (font-size 1em)
        (display block)
-       (margin 0)
+       (padding 0)
        (width 100%)
 
        ((& .tag)
@@ -31,7 +31,7 @@
       (padding 0)
       (margin 0))
 
-     ((// h2)
+     ((// .bar)
       (font-weight bold)
       (font-size 1em)
       (margin 0)
@@ -39,8 +39,17 @@
       (padding .5em)
       (background ,foreground)
       (cursor pointer)
+
       ((& :hover)
-       (background ,foreground*)))
+       (background ,foreground*))
+
+      (((// .meta))
+       (padding-left .5em)
+       (color ,highlight)
+       (float right)
+       (text-align right)
+       (font-weight normal)
+       (font-size .9em)))
 
      ((// .info)
       (padding-left 1em)))))

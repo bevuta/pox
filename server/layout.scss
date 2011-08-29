@@ -20,10 +20,13 @@
      (font-family monospace)
      (font-size 1em)
      (line-height 2em)
+     (height 2em)
      (background ,foreground)
      (color white)
      (border none)
      (margin-bottom .2em)
+     (padding "0 .5em")
+     (vertical-align middle)
      ((& :focus)
       (background ,foreground*)))
 

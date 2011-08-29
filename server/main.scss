@@ -29,13 +29,12 @@
 
      ((// input)
       (font-size 1em)
-      (width 30em)
-      (margin-right 0px))
+      (width 30em))
 
      ((// |input[type=checkbox]|)
       (float left)
       (width auto)
-      (margin-left 8em)
+      (margin-left 9em)
       (margin-right .5em))
 
 
@@ -45,8 +44,8 @@
 
       ((& |#show-tasks|)
        (width 5em)
-       (left 33.5em)
-       (top 8em))
+       (left 35.5em)
+       (top 7em))
 
       ((& |#show-help|)
        (right 1em)))
