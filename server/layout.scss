@@ -30,6 +30,9 @@
      ((& :focus)
       (background ,foreground*)))
 
+    (textarea
+     (line-height 1em))
+
     (button
      (border none)
      (background ,foreground)
