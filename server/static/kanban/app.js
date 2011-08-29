@@ -99,14 +99,22 @@
                     var container = tag("ul");
 
                     $.each(tasks, function() {
-                        var info = tag("div", { class: "info" })
+                        var details = tag("div", { class: "details" })
                             .hide()
                             .html(simpleFormat(this.description));
+
+                        tag("div", { class: "meta" })
+                            .append(tag("span", { class: "id-rev" })
+                                    .text("#" + this.id + ":" + this.revision))
+                            .append(" ")
+                            .append(tag("span", { class: "assigner" })
+                                    .text("< " + this.assigner))
+                            .prependTo(details);
 
                         var bar = tag("div", { class: "bar" })
                             .text(this.name)
                             .click(function() {
-                                info.slideToggle("fast");
+                                details.slideToggle("fast");
                             });
                         
                         var meta = tag("div", { class: "meta" })
@@ -126,7 +134,7 @@
 
                         tag("li", { class: "task" })
                             .append(bar)
-                            .append(info)
+                            .append(details)
                             .appendTo(container);
                     });
 
