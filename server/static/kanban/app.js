@@ -50,6 +50,15 @@
         return function() {
             var col = tag("td", { class: "column" }).appendTo(columns);
 
+            col.droppable({ 
+                accept: ".task",
+                drop: function(event, ui) {
+                    // TODO: ajax update request!
+                    ui.draggable.fadeOut().delay(1000).fadeIn();
+                }
+            });
+
+
             tag("input", { class: "tag" })
                 .appendTo(tag("div", { class: "wrap" }).appendTo(col))
                 .keyup(function(ev) {
@@ -97,7 +106,7 @@
                 url: uri,
                 success: function(tasks) {
                     var container = tag("ul");
-
+ 
                     $.each(tasks, function() {
                         var details = tag("div", { class: "details" })
                             .hide()
@@ -113,9 +122,12 @@
 
                         var bar = tag("div", { class: "bar" })
                             .text(this.name)
-                            .click(function() {
-                                details.slideToggle("fast");
-                            });
+                            .prepend(" ")
+                            .prepend(tag("a", { class: "action" })
+                                     .text("[e]")
+                                     .click(function() {
+                                         details.slideToggle("fast");
+                                     }));
                         
                         var meta = tag("div", { class: "meta" })
                             .prependTo(bar);
@@ -133,6 +145,7 @@
                             .appendTo(meta);
 
                         tag("li", { class: "task" })
+                            .draggable({ revert: true, cancel: ".action"  })
                             .append(bar)
                             .append(details)
                             .appendTo(container);

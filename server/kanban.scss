@@ -6,12 +6,13 @@
 
     (|#columns|
      (border-spacing 1em)
-     ((// td)
+     ((// td.column)
       (width 20em)
       (border-color ,foreground)
       (border-width 1px)
       (border-style solid)
       (vertical-align top)
+      (padding-bottom 2em)
       
       ((// .wrap)
        (padding "0 .5em"))
@@ -44,7 +45,12 @@
       (margin-top .2em)
       (padding .5em)
       (background ,foreground)
-      (cursor pointer)
+      (cursor move)
+
+      ((// a.action)
+       (cursor pointer)
+       (font-size .9em)
+       (font-weight normal))
 
       ((& :hover)
        (background ,foreground*))
