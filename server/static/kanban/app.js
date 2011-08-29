@@ -103,10 +103,29 @@
                             .hide()
                             .html(simpleFormat(this.description));
 
-                        tag("li", { class: "task" })
-                            .append(tag("h2").text(this.name).click(function() {
+                        var bar = tag("div", { class: "bar" })
+                            .text(this.name)
+                            .click(function() {
                                 info.slideToggle("fast");
-                            }))
+                            });
+                        
+                        var meta = tag("div", { class: "meta" })
+                            .prependTo(bar);
+
+                        if (this.priority != 0) {
+                            tag("span", { class: "priority" })
+                                .text((this.priority > 0 ? '+' : '') + this.priority)
+                                .appendTo(meta);
+
+                            meta.append(" ");
+                        }
+
+                        tag("span", { class: "assignee" })
+                            .text(this.assignee)
+                            .appendTo(meta);
+
+                        tag("li", { class: "task" })
+                            .append(bar)
                             .append(info)
                             .appendTo(container);
                     });
