@@ -199,3 +199,6 @@ baz")
 
 (test-write "* foo #1 < yeah  \n\n" "foo" '(((id . 1) (creator . "foo") (name . "foo") (assigner . "yeah"))))
 (test-write "* foo #1 /foo  \n\n" "foo" '(((id . 1) (name . "foo") (category . "/foo"))))
+
+(test-write "* foo #2 < bar  \n\n" #f
+            '(((id . 2) (name . "foo") (assigner . "bar"))))
