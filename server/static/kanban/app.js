@@ -46,6 +46,12 @@
         return result.html();
     };
 
+    var makeTask = function(el) {
+        return el
+            .draggable({ revert: true, cancel: ".action"  })
+            .css({ left: 0, top: 0 });
+    };
+
     var addColumnTo = function(columns) {
         return function() {
             var col = tag("td", { class: "column" }).appendTo(columns);
@@ -53,8 +59,36 @@
             col.droppable({ 
                 accept: ".task",
                 drop: function(event, ui) {
-                    // TODO: ajax update request!
-                    ui.draggable.fadeOut().delay(1000).fadeIn();
+                    ui.draggable.fadeOut("fast");
+                    var tasks = $(this).find("ul");
+                    var task = $.extend({}, ui.draggable.data("task"));
+                    var coltag = ui.draggable.parents(".column").data("tag");
+
+                    task.tags = $.grep(task.tags, function(tag) {
+                        return tag != coltag;
+                    });
+
+                    task.tags.push($(this).data("tag"));
+
+                    $.ajax({
+                        url: "/users/" + encodeURIComponent($("#user").val()) + "/tasks",
+                        type: "POST",
+                        dataType: "json",
+                        processData: false,
+                        contentType: "application/json",
+                        data: JSON.stringify([task]),
+                        error: function(r) {
+                            alert(r.responseText)
+                            ui.draggable.fadeIn();
+                        },
+                        success: function() {
+                            task.revision += 1; // FIXME: nasty hack, should re-request the task, really
+                            makeTask(ui.draggable.remove().clone())
+                                .data("task", task)
+                                .appendTo(tasks)
+                                .fadeTo("slow", 1);
+                        }
+                    });
                 }
             });
 
@@ -121,11 +155,8 @@
                         var bar = tag("div", { class: "bar" })
                             .text(this.name)
                             .prepend(" ")
-                            .prepend(tag("a", { class: "action" })
-                                     .text("[e]")
-                                     .click(function() {
-                                         details.slideToggle("fast");
-                                     }));
+                            .prepend(tag("a", { class: "action toggle-details" })
+                                     .text("[e]"));
                         
                         var meta = tag("div", { class: "meta" })
                             .prependTo(bar);
@@ -142,14 +173,15 @@
                             .text(this.assignee)
                             .appendTo(meta);
 
-                        tag("li", { class: "task" })
-                            .draggable({ revert: true, cancel: ".action"  })
+                        makeTask(tag("li", { class: "task" }))
+                            .data("task", this)
                             .append(bar)
                             .append(details)
                             .appendTo(container);
                     });
 
                     col.find(".tasks").html(container);
+                    col.data("tag", coltag);
                 }
             });
         });
@@ -176,6 +208,10 @@
             .append(controls)
             .append(tag("table", { id: "columns" })
                     .append(columns));
+
+        $("#columns a.action.toggle-details").live("click", function() {
+            $(this).parents(".task").find(".details").slideToggle("fast");
+        })
 
         addColumnsFromQueryString(columns);
         loadTasks();

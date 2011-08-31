@@ -82,15 +82,25 @@
 
 (define (post-user-tasks continue user)
   (parameterize ((user-map (select-users)))
-    (and-let* ((headers (request-headers (current-request)))
-	       (content-length (header-value 'content-length headers))
-	       (body (read-string content-length (request-port (current-request))))
-	       (tasks (with-input-from-string body downtime-read))
-	       (conflicts (persist-user-tasks (string->user-id user) tasks)))
+    (call/cc 
+     (lambda (exit)
+       (or (and-let* ((headers (request-headers (current-request)))
+                      (content-length (header-value 'content-length headers))
+                      (body (read-string content-length (request-port (current-request))))
+                      (tasks (http-accept-case (current-request)
+                               ((application/json) 
+                                (read-json-tasks body))
+                               ((text/x-downtime)
+                                (with-input-from-string body downtime-read))))
+                      (_ (unless (list? tasks) (exit #t))) ;; FIXME: not very pretty
+                      (conflicts (persist-user-tasks (string->user-id user) tasks)))
 
-      (if (null? conflicts)
-	  (send-response code: 200 reason: "OK")
-	  (send-response code: 409 reason: "Conflict" body: (conflicts->string conflicts (string->user-name user)))))))
+             (if (null? conflicts)
+                 (send-response code: 200 reason: "OK")
+                 (send-response code: 409 reason: "Conflict" body: (conflicts->string conflicts (string->user-name user)))))
+           (send-response code: 500
+                          reason: "Internal Server Error"
+                          body: "Error handling input data"))))))
 
 (handle-exception
  (lambda (exn chain)

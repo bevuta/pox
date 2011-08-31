@@ -12,12 +12,13 @@
  conflicts->string
  task-list->string
  task-list->json-serializable
+ read-json-tasks
  with-db-connection)
 
 (import chicken scheme ports srfi-1 srfi-13 data-structures extras)
 (require-library regex)
 (import irregex)
-(use matchable postgresql sql-null spiffy srfi-18)
+(use matchable postgresql sql-null spiffy srfi-18 medea)
 (use downtime)
 (use pox-db pox-db/helpers)
 (use pox-notification)
@@ -357,8 +358,17 @@
 
 (define (task-list->json-serializable tasks)
   (list->vector (map (lambda (task)
-                       (let ((tags (or (alist-ref 'tags task) '())))
+                       (let* ((tags (or (alist-ref 'tags task) '()))
+                              (task (alist-delete 'creator task))
+                              (task (alist-delete 'creator_id task)))
                          (alist-update! 'tags (list->vector tags) task)))
                      tasks)))
+
+(define task-json-parsers
+  (alist-cons 'array identity (json-parsers)))
+
+(define (read-json-tasks str)
+  (parameterize ((json-parsers task-json-parsers))
+    (read-json str)))
 
 )
