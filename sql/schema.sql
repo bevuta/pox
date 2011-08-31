@@ -25,6 +25,7 @@ CREATE TABLE tasks (
 
 CREATE LANGUAGE plpgsql;
 
+DROP FUNCTION IF EXISTS update_timestamp();
 CREATE FUNCTION update_timestamp() RETURNS trigger AS $update_timestamp$
     BEGIN
         NEW.updated_at := NOW();
