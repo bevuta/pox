@@ -86,9 +86,7 @@
     };
 
     var loadTasks = function() {
-        var baseuri = "/users/" +
-            encodeURIComponent($("#user").val()) +
-            "/tasks?filter=" +
+        var baseuri = "/tasks?filter=" +
             encodeURIComponent($("#filter").val());
 
         $(".column").each(function() {
