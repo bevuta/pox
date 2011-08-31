@@ -321,7 +321,7 @@
             (fold-right (lambda (task conflicts)
                           (if (save user-id task notifications)
                               conflicts
-                              (let* ((new-task (select-tasks `((where (= t.id ,(alist-ref 'id task))))))
+                              (let* ((new-task (select-tasks `((where (= id ,(alist-ref 'id task))))))
                                      (new-task (and (< 0 (row-count new-task)) (row-task new-task #t)))
                                      (task (if new-task
                                                (alist-update! 'revision (alist-ref 'revision new-task) task)
