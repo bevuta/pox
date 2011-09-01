@@ -91,8 +91,12 @@ $(function() {
     $.ajax({
       url: tasksURI(tasks.data("user")),
       type: "POST",
+      processData: false,
       data: tasks.find("textarea").val(),
       contentType: "text/x-downtime",
+      beforeSend: function(request) {
+	request.setRequestHeader("Accept", "text/x-downtime");
+      },
       error: function(request, status) {
 	handleRequestError(request, status);
 
