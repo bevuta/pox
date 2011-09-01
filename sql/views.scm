@@ -44,9 +44,11 @@
               (group . ,columns))
             tasks)))))
 
-(load-relative "../init")
+(use pox-db pox-db/helpers)
 
-(define db (connect (db-connection-spec)))
+(unless (db-connection)
+  (load-relative "../init")
+  (db-connection (connect (db-connection-spec))))
 
-(printf "CREATE OR REPLACE VIEW tasks_with_tags AS ~A"
-        (ssql->sql db full-tasks-query))
+(db-query (sprintf "CREATE OR REPLACE VIEW tasks_with_tags AS ~A"
+                   (ssql->sql (db-connection) full-tasks-query)))

@@ -82,7 +82,7 @@ $(function() {
   };
 
   function handleRequestError(request, status) {
-    showMessage(request.statusText, status);
+    showMessage(request.responseText, status);
   }
 
   function save() {

@@ -1,0 +1,80 @@
+(begin
+  (load "colors")
+
+  `(css+ 
+    (button
+     (display block)
+     (clear both))
+
+    ((input button textarea)
+     (display block))
+
+    (|#messages|
+     (position absolute)
+     (right 3em)
+     (top 4em))
+
+    (|#controls|
+     (padding .5em)
+     (padding-bottom 1.5em)
+     (position relative)
+     (margin-bottom 1em)
+
+     ((// label) 
+      (font-size 1em)
+      (display block)
+      (width 7em)
+      (float left)
+      (line-height 2em))
+
+     ((// input)
+      (font-size 1em)
+      (width 30em))
+
+     ((// |input[type=checkbox]|)
+      (float left)
+      (width auto)
+      (margin-left 9em)
+      (margin-right .5em))
+
+
+     ((// button)
+      (font-size 1em)
+      (position absolute)
+
+      ((& |#show-tasks|)
+       (width 5em)
+       (left 35.5em)
+       (top 7em))
+
+      ((& |#show-help|)
+       (right 1em)))
+
+     ((// |label[for=include-done]|)
+      (width auto)))
+
+    (|#tasks|
+     (padding .5em)
+
+     ((// textarea)
+      (float left)
+      (font-size 1em)
+      (width 98%)
+      (height 38em)
+      (border none)
+      (padding .5em)
+      (clear both))
+
+     ((// button) 
+      (float right)
+      (margin-right .7em)))
+
+    (|#help|
+     (background ,foreground)
+     (display none)
+     (float right)
+
+     ((// .content)
+      (margin .5em))
+     ((// dd) 
+      (margin-left 1em)))))

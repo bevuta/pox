@@ -1,0 +1,65 @@
+(begin
+  (load "colors")
+  `(css+
+    (|#controls|
+     (padding "1em 0"))
+
+    (|#columns|
+     (border-spacing 1em)
+     ((// td.column)
+      (width 20em)
+      (border-color ,foreground)
+      (border-width 1px)
+      (border-style solid)
+      (vertical-align top)
+      (padding-bottom 2em)
+      
+      ((// .wrap)
+       (padding "0 .5em"))
+      
+      ((// input)
+       (font-size 1em)
+       (display block)
+       (padding 0)
+       (width 100%)
+
+       ((& .tag)
+        (background ,background)))))
+
+    (.tasks
+     ((> ul)
+      (list-style none)
+      (padding 0)
+      (margin 0))
+
+     (((// .meta))
+      (color ,highlight)
+      (text-align right)
+      (font-weight normal)
+      (font-size .9em))
+
+     ((// .bar)
+      (font-weight bold)
+      (font-size 1em)
+      (margin 0)
+      (margin-top .2em)
+      (padding .5em)
+      (background ,foreground)
+      (cursor move)
+
+      ((// a.action)
+       (cursor pointer)
+       (font-size .9em)
+       (font-weight normal))
+
+      ((& :hover)
+       (background ,foreground*))
+
+      (((// .meta))
+       (float right)
+       (padding-left .5em)))
+
+     ((// .details)
+      (padding-left 1em)
+      ((// .meta)
+       (padding .5em))))))

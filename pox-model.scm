@@ -6,17 +6,19 @@
  string->user-name
  string->user-id
  select-users
+ select-tasks
  persist-user-tasks
  select-user-tasks
  conflicts->string
  task-list->string
  task-list->json-serializable
+ read-json-tasks
  with-db-connection)
 
 (import chicken scheme ports srfi-1 srfi-13 data-structures extras)
 (require-library regex)
 (import irregex)
-(use matchable postgresql sql-null spiffy srfi-18)
+(use matchable postgresql sql-null spiffy srfi-18 medea)
 (use downtime)
 (use pox-db pox-db/helpers)
 (use pox-notification)
@@ -53,22 +55,26 @@
 (define (remove-sql-nulls l)
   (remove (compose sql-null? cdr) l))
 
-(define task-query-columns
-  '(id created_at revision name description priority done category tags))
-
 (define tasks-query
-  `(select (columns creator assigner assignee . ,task-query-columns)
-     (from tasks_with_tags)))
-
-(define task-query
-  `(select (columns creator_id assigner_id assignee_id . ,task-query-columns)
+  `(select (columns creator creator_id
+                    assigner assigner_id
+                    assignee  assignee_id
+                    id
+                    created_at
+                    revision
+                    name
+                    description
+                    priority
+                    done
+                    category
+                    tags)
      (from tasks_with_tags)))
 
 (define (select-tasks #!optional (additional '()) (vars '()))
   (db-query (db-compose-query tasks-query additional) vars))
 
 (define (select-task id)
-  (db-query (db-compose-query task-query `((where (= id ,id))))))
+  (db-query (db-compose-query tasks-query `((where (= id ,id))))))
 
 (define (prepare-filters filters)
   (partition (lambda (filter)
@@ -77,33 +83,41 @@
                        (> (string-length filter) 1))
                      filters)))
 
-(define (select-user-tasks user #!optional groups (filters '()) (include-done #f))
+(define (select-tasks groups filters include-done #!optional additional-conditions)
   (receive (tag-filters filters)
       (prepare-filters (map symbol->string filters))
-    (let* ((conditions '(in $1 #(assignee assigner creator)))
-           (conditions (if (pair? filters)
-                           `(and ,conditions
-                                 . ,(map (lambda (i)
-                                           (let ((var (string->symbol (sprintf "$~A" i))))
-                                             `(or (like name ,var)
-                                                  (like description ,var)
-                                                  (like category ,var))))
-                                         (iota (length filters) 2)))
-                           conditions))
+    (let* ((conditions (if (pair? filters)
+                           `((and . ,(map (lambda (i)
+                                            (let ((var (string->symbol (sprintf "$~A" i))))
+                                              `(or (like name ,var)
+                                                   (like description ,var)
+                                                   (like category ,var))))
+                                          (iota (length filters) 1))))
+                           '()))
            (tag-filters (map (lambda (f) (string-drop f 1)) tag-filters))
            (conditions (if (pair? tag-filters)
-                           `(and ,conditions
-                                 (@> tags (array . ,tag-filters)))
+                           `((and (@> tags (array . ,tag-filters))
+                                  . ,conditions))
                            conditions))
            (conditions (if include-done 
                            conditions
-                           `(and (= done #f) ,conditions)))
-           (result (select-tasks `((order (desc priority) (asc created_at) (asc id))
-                                   (where ,conditions))
-                                 (cons user (map (cut sprintf "%~A%" <>) filters))))
+                           `((and (= done #f) . ,conditions))))
+
+           (conditions (if additional-conditions
+                           `((and ,additional-conditions . ,conditions))
+                           conditions))
+           (result (db-query (db-compose-query tasks-query
+                                               `((order (desc priority) (asc created_at) (asc id))
+                                                 . ,(if (null? conditions) 
+                                                        '()
+                                                        `((where . ,conditions)))))
+                             (map (cut sprintf "%~A%" <>) filters)))
            (tasks (result->tasks result #t)))
 
       (tasks-group-by groups tasks))))
+
+(define (select-user-tasks user groups filters include-done)
+  (select-tasks groups filters include-done `(in ,user #(assignee assigner creator))))
 
 (define (tasks-group-by groups tasks)
   (if (and groups (pair? groups))
@@ -158,6 +172,7 @@
                   (or (alist-ref 'tags task1) '())
                   (or (alist-ref 'tags task2) '())))))
 
+;; FIXME: this is probably not required anymore as tasks should always contain user names now
 (define (task-with-user-names task)
   (fold (lambda (field task)
 	  (alist-update! field 
@@ -321,7 +336,7 @@
             (fold-right (lambda (task conflicts)
                           (if (save user-id task notifications)
                               conflicts
-                              (let* ((new-task (select-tasks `((where (= id ,(alist-ref 'id task))))))
+                              (let* ((new-task (select-task (alist-ref 'id task)))
                                      (new-task (and (< 0 (row-count new-task)) (row-task new-task #t)))
                                      (task (if new-task
                                                (alist-update! 'revision (alist-ref 'revision new-task) task)
@@ -343,8 +358,17 @@
 
 (define (task-list->json-serializable tasks)
   (list->vector (map (lambda (task)
-                       (let ((tags (or (alist-ref 'tags task) '())))
+                       (let* ((tags (or (alist-ref 'tags task) '()))
+                              (task (alist-delete 'creator task))
+                              (task (alist-delete 'creator_id task)))
                          (alist-update! 'tags (list->vector tags) task)))
                      tasks)))
+
+(define task-json-parsers
+  (alist-cons 'array identity (json-parsers)))
+
+(define (read-json-tasks str)
+  (parameterize ((json-parsers task-json-parsers))
+    (read-json str)))
 
 )
