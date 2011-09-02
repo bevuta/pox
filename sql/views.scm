@@ -1,4 +1,8 @@
+(load-relative "../pox-db")
+(load-relative "../pox-db/helpers")
+
 (use postgresql ssql ssql-postgresql)
+(use pox-db pox-db/helpers)
 
 (define task-query-columns
   '(id created_at revision name description priority done category assignee_id assigner_id creator_id))
@@ -47,7 +51,6 @@
 (use pox-db pox-db/helpers)
 
 (unless (db-connection)
-  (load-relative "../pox-db")
   (load-relative "../init")
   (db-connection (connect (db-connection-spec))))
 
