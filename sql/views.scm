@@ -47,6 +47,7 @@
 (use pox-db pox-db/helpers)
 
 (unless (db-connection)
+  (load-relative "../pox-db")
   (load-relative "../init")
   (db-connection (connect (db-connection-spec))))
 
