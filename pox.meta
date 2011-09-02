@@ -4,6 +4,7 @@
  (category tools)
  (license "GPL")
  (needs intarweb uri-common matchable getopt-long pool postgresql hato-smtp
-        medea spiffy-request-vars spiffy-uri-match spiffy ssql ssql-postgresql)
+        medea spiffy-request-vars spiffy-uri-match spiffy ssql ssql-postgresql
+        sxml-transforms)
  (text-depends test)
  (files "pox-mail.scm" "pox.setup"))
