@@ -1,0 +1,9 @@
+(use system)
+
+(define-system pox
+  (scheme-file "downtime")
+  (scheme-file "pox-db")
+  (scheme-file "pox-notification" depends: '("pox-db" "pox-db/helpers"))
+  (scheme-file "pox-model" depends: '("pox-db" "pox-db/helpers" "pox-notification" "downtime"))
+  (scheme-file "pox-server" depends: '("pox-db/helpers"))
+  (scheme-file "pox-db/helpers" depends: '("pox-db")))

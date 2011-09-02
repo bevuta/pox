@@ -11,15 +11,22 @@
 (if development? (access-log (current-output-port)))
 (tcp-buffer-size 1024)
 
+(load "pox.system")
+
 (define load-server
-  (let ((loaded #f)
-	(mutex  (make-mutex)))
+  (let ((mutex   (make-mutex))
+        (loaded? #f))
     (lambda ()
-      (when (or development? (not loaded))
-	(mutex-lock! mutex)
-	(load-relative "boot")
-	(set! loaded #t)
-	(mutex-unlock! mutex)))))
+      (dynamic-wind
+          (lambda ()
+            (mutex-lock! mutex))
+          (lambda ()
+            (when (or development? (not loaded?))
+              (load-system pox)
+              (load "boot")
+              (set! loaded? #t)))
+          (lambda ()
+            (mutex-unlock! mutex))))))
 
 (load-server)
 (use pox-server)
