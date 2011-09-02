@@ -48,8 +48,6 @@
               (group . ,columns))
             tasks)))))
 
-(use pox-db pox-db/helpers)
-
 (unless (db-connection)
   (load-relative "../init")
   (db-connection (connect (db-connection-spec))))
