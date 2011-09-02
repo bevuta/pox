@@ -105,7 +105,8 @@
 (handle-exception
  (lambda (exn chain)
    (log-to (error-log) "~A" (build-error-message exn chain #t))
-   (send-response code: 500 reason: (get-condition-property exn 'exn 'message))))
+   (let ((message (get-condition-property exn 'exn 'message)))
+     (send-response code: 500 reason: "Internal Server Error" body: message))))
 
 (define handle-request
   (uri-match/spiffy 
