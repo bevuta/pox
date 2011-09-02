@@ -2,7 +2,6 @@
 
 (alist->ssql-insert
  alist->ssql-update
- quote-id
  db-query
  db-compose-query
  db-select
@@ -17,9 +16,6 @@
   (if (string? stmt)
       stmt
       (ssql->sql (db-connection) stmt)))
-
-(define (quote-id id)
-  (quote-identifier (db-connection) id))
 
 (define (alist->ssql-insert table alist)
   (cons `(insert (into ,table) 
