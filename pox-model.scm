@@ -37,9 +37,13 @@
 	   (db-query '(select (columns id name) (from users)))))
 
 (define (user-name->id name)
-  (and-let* ((name name)
-	     (user (find (lambda (user) (string=? name (cdr user))) (user-map))))
-    (car user)))
+  (and name
+       (let ((user (find (lambda (user)
+                           (string=? name (cdr user)))
+                         (user-map))))
+         (if user
+             (car user)
+             (error (sprintf "user does not exist: ~A" name) name)))))
 
 (define (user-id->name id)
   (alist-ref id (user-map)))
