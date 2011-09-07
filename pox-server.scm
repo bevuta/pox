@@ -115,8 +115,6 @@
 	      (send-response body: (with-output-to-string 
 				       (cut pp (request-headers (current-request))))))))
 
-     ((/ "tasks")
-      (GET ,get-tasks))
 
      ((/ "users") 
       ((/ (submatch (+ any)))
@@ -127,7 +125,9 @@
      ((/ "tasks")
       (GET ,(lambda (continue)
               (let ((user ((request-vars source: 'query-string) 'user)))
-                (get-user-tasks continue user))))))))
+                (if user
+                    (get-user-tasks continue user)
+                    (get-tasks continue)))))))))
 
 (define (pox-handler continue)
   (with-db-connection (lambda ()
