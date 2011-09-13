@@ -5,5 +5,10 @@
   (scheme-file "pox-db")
   (scheme-file "pox-notification" depends: '("pox-db" "pox-db/helpers"))
   (scheme-file "pox-model" depends: '("pox-db" "pox-db/helpers" "pox-notification" "downtime"))
-  (scheme-file "pox-server" depends: '("pox-db/helpers"))
-  (scheme-file "pox-db/helpers" depends: '("pox-db")))
+  (scheme-file "web" includes: '("sxml"))
+  (scheme-file "pox-server"
+               depends: '("pox-db/helpers" "pox-auth" "spiffy-auth" "spiffy-session" "pox-log")
+               includes: '("web"))
+  (scheme-file "pox-db/helpers" depends: '("pox-db" "pox-log"))
+  (scheme-file "pox-auth" depends: '("spiffy-auth" "spiffy-session"))
+  (scheme-file "spiffy-session"))
