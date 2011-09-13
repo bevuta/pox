@@ -19,7 +19,7 @@
    `((head (title ,title))
      (body
       (div (@ (data-role "page") (id ,id))
-           (div (@ (data-role "header") (class "ui-bar")) 
+           (div (@ (data-role "header") (class "ui-bar"))
                 ,nav
                 (h1 ,title))
            (div (@ (data-role "content")) ,content))))))
@@ -34,13 +34,13 @@
         (if (not tasks)
             (send-response status: 'not-found body: "Not Found")
             (http-accept-case (current-request)
-              ((application/json) 
+              ((application/json)
                (send-json-response (task-list->json-serializable tasks)))
               ((text/x-downtime)
                (send-response headers: '((content-type #(text/x-downtime ((charset . "utf-8")))))
-                              body: (task-list->string 
+                              body: (task-list->string
                                      tasks
-                                     user 
+                                     user
                                      (and (not omit-origin)
                                           (request-uri (current-request))))))
               ((text/html)
@@ -68,7 +68,7 @@
                                                                  (data-icon "check"))
                                                               "Done"))))))
                                       tasks))
-                          `(a (@ (href "#login") (data-icon "back")) 
+                          `(a (@ (href "#login") (data-icon "back"))
                               "Change user")))))))))
 
 (define (get-tasks continue)
@@ -86,13 +86,13 @@
 
 (define (post-user-tasks continue user)
   (parameterize ((user-map (select-users)))
-    (call/cc 
+    (call/cc
      (lambda (exit)
        (or (and-let* ((headers (request-headers (current-request)))
                       (content-length (header-value 'content-length headers))
                       (body (read-string content-length (request-port (current-request))))
                       (tasks (http-accept-case (current-request)
-                               ((application/json) 
+                               ((application/json)
                                 (read-json-tasks body))
                                ((text/x-downtime)
                                 (with-input-from-string body downtime-read))))
