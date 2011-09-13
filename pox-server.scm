@@ -7,6 +7,10 @@
 
 (include "web")
 
+(http-status-codes
+ `((unprocessable-entity 422 . "Unprocessable Entity")
+   . ,(http-status-codes)))
+
 (define (list-string->list ls)
   (if ls (with-input-from-string (format "(~A)" ls) read) '()))
 
@@ -28,7 +32,7 @@
                                  (list-string->list filter)
                                  include-done)))
         (if (not tasks)
-            (send-response code: 404 reason: "Not Found" body: "Not Found")
+            (send-response status: 'not-found body: "Not Found")
             (http-accept-case (current-request)
               ((application/json) 
                (send-json-response (task-list->json-serializable tasks)))
