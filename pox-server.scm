@@ -3,7 +3,7 @@
 (import chicken scheme)
 (use spiffy srfi-1 extras ports data-structures medea intarweb spiffy-request-vars
      spiffy-uri-match pox-db/helpers pox-model downtime uri-common sxml-transforms
-     irregex)
+     irregex pox-auth spiffy-auth spiffy-session pox-log)
 
 (include "web")
 
@@ -100,41 +100,83 @@
                       (conflicts (persist-user-tasks (string->user-id user) tasks)))
 
              (if (null? conflicts)
-                 (send-response code: 200 reason: "OK")
-                 (send-response code: 409 reason: "Conflict" body: (conflicts->string conflicts (string->user-name user)))))
-           (send-response code: 500
-                          reason: "Internal Server Error"
+                 (send-response status: 'no-content)
+                 (send-response status: 'conflict
+                                body: (conflicts->string conflicts (string->user-name user)))))
+           (send-response status: 'internal-server-error
                           body: "Error handling input data"))))))
+
+(session-cookie-name "pox-sid")
+
+(get-session-id (lambda ()
+                  (log debug: auth: session: "checking cookie")
+                  (or (get-session-id-from-cookie)
+                      (let ((headers (request-headers (current-request))))
+                        (and (eq? 'x-session (header-value 'authorization headers))
+                             (header-param 'id 'authorization headers))))))
+
+(define (post-session continue)
+  (with-request-vars* (request-vars source: 'request-body)
+      ((user (nonempty as-string)) (password (nonempty as-string)))
+    (if (valid-credentials? user password)
+        (with-new-session
+         (lambda ()
+           (maybe-create-user user)
+           (session-set! 'user user)
+           (send-response status: 'created)))
+        (send-response status: 'unprocessable-entity body: "Invalid credentials"))))
 
 (handle-exception
  (lambda (exn chain)
    (log-to (error-log) "~A" (build-error-message exn chain #t))
    (let ((message (get-condition-property exn 'exn 'message)))
-     (send-response code: 500 reason: "Internal Server Error" body: message))))
+     (send-response status: 'internal-server-error body: message))))
+
+(define (with-request-dump continue)
+  (log debug: request: headers:
+       (headers->list (request-headers (current-request))))
+  (continue))
+
+(define (wrap-handler . wrappers)
+  (let* ((wrappers (reverse wrappers))
+         (handler (car wrappers))
+         (wrappers (cdr wrappers)))
+    (fold (lambda (wrapper handler)
+            (lambda args
+              (wrapper (lambda ()
+                         (apply handler args)))))
+          handler
+          wrappers)))
+
+(define (with-authentication* handler)
+  (if (authentication-enabled?)
+      (wrap-handler with-authentication handler)
+      handler))
 
 (define handle-request
-  (uri-match/spiffy 
-   `(((/ "inspect")
-      (GET ,(lambda (continue) 
-	      (send-response body: (with-output-to-string 
-				       (cut pp (request-headers (current-request))))))))
+  (wrap-handler
+   with-request-dump
+   with-session
+   (uri-match/spiffy
+    `(((/ "session")
+       (POST ,post-session))
 
+      ((/ "users")
+       ((/ (submatch (+ any)))
+        ((/ "tasks")
+         (GET ,(with-authentication* get-user-tasks))
+         (POST ,(with-authentication* post-user-tasks)))))
 
-     ((/ "users") 
-      ((/ (submatch (+ any)))
-       ((/ "tasks")
-	(GET ,get-user-tasks)
-	(POST ,post-user-tasks))))
-
-     ((/ "tasks")
-      (GET ,(lambda (continue)
-              (let ((user ((request-vars source: 'query-string) 'user)))
-                (if user
-                    (get-user-tasks continue user)
-                    (get-tasks continue)))))))))
+      ((/ "tasks")
+       (GET ,(with-authentication*
+              (lambda (continue)
+                (let ((user ((request-vars source: 'query-string) 'user)))
+                  (if user
+                      (get-user-tasks continue user)
+                      (get-tasks continue)))))))))))
 
 (define (pox-handler continue)
   (with-db-connection (lambda ()
-			(handle-request continue))))
+                        (handle-request continue))))
 
 )

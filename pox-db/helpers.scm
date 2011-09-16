@@ -9,13 +9,17 @@
  result->alists)
 
 (import chicken scheme data-structures extras)
-(use srfi-1 postgresql pox-db ssql)
+(use srfi-1 postgresql pox-db pox-log ssql)
 (require-library ssql-postgresql)
 
 (define (->sql stmt)
   (if (string? stmt)
-      stmt
-      (ssql->sql (db-connection) stmt)))
+      (begin
+        (log debug: db: query: sql: stmt)
+        stmt)
+      (begin 
+        (log debug: db: query: ssql: stmt)
+        (->sql (ssql->sql (db-connection) stmt)))))
 
 (define (alist->ssql-insert table alist)
   (cons `(insert (into ,table) 
@@ -41,8 +45,11 @@
           (map cdr alist))))
 
 (define (db-query statement #!optional (vars '()))
+  (log debug: db: query: ssql: statement vars)
   (query* (db-connection)
-	  (->sql statement)
+	  (let ((sql (->sql statement)))
+            (log debug: db: query: sql: sql)
+            sql)
 	  vars))
 
 (define (db-compose-query a b)

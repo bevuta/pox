@@ -13,7 +13,8 @@
  task-list->string
  task-list->json-serializable
  read-json-tasks
- with-db-connection)
+ with-db-connection
+ maybe-create-user)
 
 (import chicken scheme ports srfi-1 srfi-13 data-structures extras)
 (require-library regex)
@@ -55,6 +56,13 @@
   (if (irregex-match '(+ num) user) 
       (string->number user)
       (user-name->id user)))
+
+(define (maybe-create-user name)
+  (condition-case
+      (db-query '(insert (into users) (columns name) (values #($1))) (list name))
+    (exn (postgresql)
+         (unless (equal? "23505" (get-condition-property exn 'postgresql 'error-code))
+           (signal exn)))))
 
 (define (remove-sql-nulls l)
   (remove (compose sql-null? cdr) l))
