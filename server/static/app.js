@@ -8,10 +8,11 @@ $(function() {
 "<pre>task     = &quot;*&quot; &lt;name&gt; &lt;meta&gt;? (&quot;\\n&quot; &lt;description&gt;)? ",
 "name     = [^#\\n]+",
 "meta     = &quot;#&quot; (&lt;id&gt; (&quot;:&quot; &lt;revision&gt;)?)? &lt;property&gt;*",
-"id       = [:digit:]+",
-"revision = [:digit:]+",
+"id       = [[:digit:]]+",
+"revision = [[:digit:]]+",
+"priority = [[:digit:]]",
 "property = &quot;&gt;&quot; &lt;assignee&gt; | &quot;&lt;&quot; &lt;assigner&gt; | ",
-"           [+-] &lt;priority&gt; | &quot;:&quot; &lt;tag&gt;",
+"           [-+] &lt;priority&gt; | &quot;:&quot; &lt;tag&gt;",
 "grouping = &quot;#&quot;+ &lt;property&gt;*</pre>",
 "<h3>Task Examples</h3>",
 "<dl>",
@@ -51,7 +52,7 @@ $(function() {
 "<pre># :bug",
 "* this is an important bug # :important",
 "## :critical",
-"* this is a critical bug</pre></dd></dl>",
+"* this is a critical bug</pre></dd></dl>"
 ].join("\n")
         ));
 

@@ -3,10 +3,11 @@
  (pre "task     = \"*\" <name> <meta>? (\"\\\\n\" <description>)? \n"
       "name     = [^#\\\\n]+\n"
       "meta     = \"#\" (<id> (\":\" <revision>)?)? <property>*\n"
-      "id       = [:digit:]+\n"
-      "revision = [:digit:]+\n"
+      "id       = [[:digit:]]+\n"
+      "revision = [[:digit:]]+\n"
+      "priority = [[:digit:]]\n"
       "property = \">\" <assignee> | \"<\" <assigner> | \n"
-      "           [+-] <priority> | \":\" <tag>\n"
+      "           [-+] <priority> | \":\" <tag>\n"
       "grouping = \"#\"+ <property>*")
  (h3 "Task Examples")
  (dl
