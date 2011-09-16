@@ -132,15 +132,26 @@
    (let ((message (get-condition-property exn 'exn 'message)))
      (send-response status: 'internal-server-error body: message))))
 
-(define (with-request-dump handler)
-  (lambda (continue)
-    (log debug: request: headers:
-         (headers->list (request-headers (current-request))))
-    (handler continue)))
+(define (with-request-dump continue)
+  (log debug: request: headers:
+       (headers->list (request-headers (current-request))))
+  (continue))
+
+(define (wrap-handler . wrappers)
+  (let* ((wrappers (reverse wrappers))
+         (handler (car wrappers))
+         (wrappers (cdr wrappers)))
+    (fold (lambda (wrapper handler)
+            (lambda args
+              (wrapper (lambda ()
+                         (apply handler args)))))
+          handler
+          wrappers)))
 
 (define handle-request
-  ((o with-request-dump
-      with-session)
+  (wrap-handler
+   with-request-dump
+   with-session
    (uri-match/spiffy
     `(((/ "session")
        (POST ,post-session))
@@ -148,11 +159,12 @@
       ((/ "users")
        ((/ (submatch (+ any)))
         ((/ "tasks")
-         (GET ,(with-authentication get-user-tasks))
-         (POST ,(with-authentication post-user-tasks)))))
+         (GET ,(wrap-handler with-authentication get-user-tasks))
+         (POST ,(wrap-handler with-authentication post-user-tasks)))))
 
       ((/ "tasks")
-       (GET ,(with-authentication
+       (GET ,(wrap-handler
+              with-authentication
               (lambda (continue)
                 (let ((user ((request-vars source: 'query-string) 'user)))
                   (if user
