@@ -148,6 +148,11 @@
           handler
           wrappers)))
 
+(define (with-authentication* handler)
+  (if (authentication-enabled?)
+      (wrap-handler with-authentication handler)
+      handler))
+
 (define handle-request
   (wrap-handler
    with-request-dump
@@ -159,12 +164,11 @@
       ((/ "users")
        ((/ (submatch (+ any)))
         ((/ "tasks")
-         (GET ,(wrap-handler with-authentication get-user-tasks))
-         (POST ,(wrap-handler with-authentication post-user-tasks)))))
+         (GET ,(with-authentication* get-user-tasks))
+         (POST ,(with-authentication* post-user-tasks)))))
 
       ((/ "tasks")
-       (GET ,(wrap-handler
-              with-authentication
+       (GET ,(with-authentication*
               (lambda (continue)
                 (let ((user ((request-vars source: 'query-string) 'user)))
                   (if user

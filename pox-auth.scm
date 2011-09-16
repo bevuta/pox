@@ -1,9 +1,12 @@
 (module pox-auth 
 
-(valid-credentials? check-auth-credentials)
+(valid-credentials? check-auth-credentials authentication-enabled?)
 
 (import chicken scheme)
 (use data-structures intarweb spiffy spiffy-session spiffy-auth pox-log)
+
+(define authentication-enabled?
+  (make-parameter #t))
 
 (define check-auth-credentials
   (make-parameter (lambda _ (error "check-auth-credentials is not set"))))
