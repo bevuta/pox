@@ -1,13 +1,16 @@
 (use system)
 
 (define-system pox
+  (scheme-file "init" depends: '("pox-server"))
+  (scheme-file "boot" depends: '("init"))
   (scheme-file "downtime")
   (scheme-file "pox-db")
-  (scheme-file "pox-notification" depends: '("pox-db" "pox-db/helpers"))
+  (scheme-file "pox-notification" depends: '("pox-db" "pox-db/helpers" "downtime"))
   (scheme-file "pox-model" depends: '("pox-db" "pox-db/helpers" "pox-notification" "downtime"))
   (scheme-file "web" includes: '("sxml"))
   (scheme-file "pox-server"
-               depends: '("pox-db/helpers" "pox-auth" "pox-log")
+               depends: '("pox-model" "pox-db/helpers" "pox-auth" "pox-log" "spiffy-middleware")
                includes: '("web"))
   (scheme-file "pox-db/helpers" depends: '("pox-db" "pox-log"))
-  (scheme-file "pox-auth"))
+  (scheme-file "pox-auth")
+  (scheme-file "spiffy-middleware"))

@@ -3,7 +3,7 @@
 (import chicken scheme)
 (use spiffy srfi-1 extras ports data-structures medea intarweb spiffy-request-vars
      spiffy-uri-match pox-db/helpers pox-model downtime uri-common sxml-transforms
-     irregex pox-auth spiffy-auth spiffy-session pox-log)
+     irregex pox-auth spiffy-middleware spiffy-auth spiffy-session pox-log)
 
 (include "web")
 
@@ -137,24 +137,14 @@
        (headers->list (request-headers (current-request))))
   (continue))
 
-(define (wrap-handler . wrappers)
-  (let* ((wrappers (reverse wrappers))
-         (handler (car wrappers))
-         (wrappers (cdr wrappers)))
-    (fold (lambda (wrapper handler)
-            (lambda args
-              (wrapper (lambda ()
-                         (apply handler args)))))
-          handler
-          wrappers)))
 
 (define (with-authentication* handler)
   (if (authentication-enabled?)
-      (wrap-handler with-authentication handler)
+      (chain-handlers with-authentication handler)
       handler))
 
 (define handle-request
-  (wrap-handler
+  (chain-handlers
    with-request-dump
    with-session
    (uri-match/spiffy
