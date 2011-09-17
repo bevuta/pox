@@ -21,8 +21,8 @@
           (lambda ()
             (when (or reload? (not loaded?))
               (load-system sys)
-              (set! loaded? #t)
-              (continue)))
+              (set! loaded? #t))
+            (continue))
           (lambda ()
             (mutex-unlock! mutex))))))
 
