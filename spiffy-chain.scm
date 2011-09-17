@@ -1,4 +1,4 @@
-(module spiffy-middleware
+(module spiffy-chain
 
 (chain-handlers)
 

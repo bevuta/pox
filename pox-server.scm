@@ -3,7 +3,7 @@
 (import chicken scheme)
 (use spiffy srfi-1 extras ports data-structures medea intarweb spiffy-request-vars
      spiffy-uri-match pox-db/helpers pox-model downtime uri-common sxml-transforms
-     irregex pox-auth spiffy-middleware spiffy-auth spiffy-session pox-log)
+     irregex pox-auth spiffy-chain spiffy-auth spiffy-session pox-log)
 
 (include "web")
 

@@ -28,7 +28,7 @@
 
 (load "pox.system")
 (load-system pox)
-(import pox-server spiffy-middleware)
+(import pox-server spiffy-chain)
 (root-path "server/static")
 (vhost-map `((".*" . ,(chain-handlers (with-system pox development?) pox-handler))))
 

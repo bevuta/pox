@@ -9,8 +9,8 @@
   (scheme-file "pox-model" depends: '("pox-db" "pox-db/helpers" "pox-notification" "downtime"))
   (scheme-file "web" includes: '("sxml"))
   (scheme-file "pox-server"
-               depends: '("pox-model" "pox-db/helpers" "pox-auth" "pox-log" "spiffy-middleware")
+               depends: '("pox-model" "pox-db/helpers" "pox-auth" "pox-log" "spiffy-chain")
                includes: '("web"))
   (scheme-file "pox-db/helpers" depends: '("pox-db" "pox-log"))
   (scheme-file "pox-auth")
-  (scheme-file "spiffy-middleware"))
+  (scheme-file "spiffy-chain"))
