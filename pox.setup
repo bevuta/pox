@@ -12,8 +12,8 @@
  'pox
  (append-map (lambda (c)
                (list
-                (sprintf "~A.so" c)
-                (sprintf "~A.import.so" c)))
+                (pathname-replace-extension c "so")
+                (pathname-replace-extension c "import.so")))
              (map component-name
                   (filter (lambda (c)
                             (subclass? (class-of c) <scheme-file>))
