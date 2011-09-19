@@ -27,10 +27,8 @@
    (compiling
     pox-handler)
    (else
-    (use system)
-    (load "pox.system")
-    (load-system pox)
-    (chain (with-system pox development?) pox-handler))))
+    (chain (with-system pox development?) 
+           pox-handler))))
 
 (vhost-map `((".*" . ,handler)))
 
