@@ -1,8 +1,8 @@
 (module pox-server (pox-handler)
 
 (import chicken scheme)
-(use spiffy srfi-1 extras ports data-structures medea intarweb spiffy-request-vars
-     spiffy-uri-match pox-db/helpers pox-model downtime uri-common sxml-transforms
+(use spiffy srfi-1 extras ports data-structures intarweb spiffy-request-vars
+     spiffy-uri-match pox-db/helpers pox-model downtime uri-common
      irregex pox-auth spiffy-chain spiffy-auth spiffy-session pox-log)
 
 (include "web")
@@ -140,11 +140,11 @@
 
 (define (with-authentication* handler)
   (if (authentication-enabled?)
-      (chain-handlers with-authentication handler)
+      (chain with-authentication handler)
       handler))
 
 (define handle-request
-  (chain-handlers
+  (chain
    with-request-dump
    with-session
    (uri-match/spiffy

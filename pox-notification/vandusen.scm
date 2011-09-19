@@ -1,7 +1,7 @@
 (module pox-notification/vandusen ()
 
-(import chicken scheme tcp data-structures ports extras)
-(use pox-notification)
+(import chicken scheme)
+(use tcp data-structures ports extras pox-notification)
 
 (register-notification-handler 'vandusen
   (lambda (user params event new old)

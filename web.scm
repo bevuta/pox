@@ -1,3 +1,5 @@
+(use medea spiffy)
+
 (include "sxml")
 
 (define (send-sxml-response page)

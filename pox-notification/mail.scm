@@ -2,8 +2,8 @@
 
 (notification-mail-from)
 
-(import chicken scheme data-structures)
-(use pox-notification pox-mail)
+(import chicken scheme)
+(use data-structures pox-notification pox-mail)
 
 (define notification-mail-from (make-parameter #f))
 

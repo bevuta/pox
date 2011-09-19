@@ -1,3 +1,5 @@
+(use sxml-transforms spiffy)
+
 (define (string-blank? s)
   (irregex-match '(* space) s))
 

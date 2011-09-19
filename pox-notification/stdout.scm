@@ -1,7 +1,7 @@
 (module pox-notification/stdout ()
 
-(import chicken scheme pox-notification extras)
-(use srfi-18)
+(import chicken scheme)
+(use srfi-18 pox-notification extras)
 
 (register-notification-handler 'stdout 
   (lambda (user params event new old)

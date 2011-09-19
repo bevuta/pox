@@ -1,43 +1,28 @@
-(define-syntax compile-modules
-  (lambda (e r c)
-    (let* ((_make (r 'make))
-	   (_compile (r 'compile))
-	   (_begin (r 'begin))
-	   (_install-extension (r 'install-extension)))
-      `(,_begin
-	,@(map (lambda (m)
-		 (let ((m (if (symbol? m) (list m m) (cons (car m) m))))
-		   `(,_begin
-		     (,_make ((,(conc (car m) ".so")
-			       ,(map (lambda (s) (conc s ".scm")) (cdr m))
-			       (,_begin 
-				(,_compile -s -O2 -d1 -J ,(conc (car m) ".scm"))
-				(,_compile -s -O2 -d0 ,(conc (car m) ".import.scm"))))))
+(use system coops srfi-1)
 
-		     (,_install-extension
-		      ',(car m)
-		      '(,(conc (car m) ".so") ,(conc (car m) ".import.so"))
-		      '((version 0.1))))))
-	       (cdr e))))))
+(define-method (rebuild-file after: (sf <scheme-file>))
+  (let* ((path (pathname-replace-extension (file-path sf) "import.scm"))
+         (out (pathname-replace-extension path "so")))
+    (run (csc -s ,path -o ,out))))
 
-(compile-modules downtime
-		 pox-db
-		 (pox-db/helpers pox-db)
-		 pox-mail
-		 (pox-mail/sendmail pox-mail)
-		 (pox-mail/smtp pox-mail)
-		 (pox-notification pox-db pox-db/helpers)
-		 (pox-notification/mail pox-notification)
-		 (pox-notification/stdout pox-notification)
-		 (pox-notification/vandusen pox-notification)
-		 pox-model
-		 pox-server)
+(load "pox.system")
+(build-system pox)
 
+(install-extension
+ 'pox
+ (append-map (lambda (c)
+               (list
+                (sprintf "~A.so" c)
+                (sprintf "~A.import.so" c)))
+             (map component-name
+                  (filter (lambda (c)
+                            (subclass? (class-of c) <scheme-file>))
+                          (system-components pox))))
+ '((version "0.0.1")))
 
-(make (("pox-server" ("run.scm")
-	(compile -o pox-server -O2 -d1 pox-server.scm))))
+(compile run.scm -o pox-server)
 
 (install-program
- 'run
+ 'pox-server-cmd
  '("pox-server")
- `((version 0.1)))
+ `((version "0.0.1")))
