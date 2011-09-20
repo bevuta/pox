@@ -56,5 +56,8 @@
   (load-relative "../init")
   (db-connection (connect (db-connection-spec))))
 
-(db-query (sprintf "CREATE OR REPLACE VIEW tasks_with_tags AS ~A"
-                   (ssql->sql (db-connection) full-tasks-query)))
+(with-transaction (db-connection)
+  (lambda ()
+    (db-query "DROP VIEW tasks_with_tags")
+    (db-query (sprintf "CREATE VIEW tasks_with_tags AS ~A"
+                       (ssql->sql (db-connection) full-tasks-query)))))
