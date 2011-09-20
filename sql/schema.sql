@@ -57,3 +57,6 @@ CREATE TABLE task_tags (
        task_id INTEGER NOT NULL REFERENCES tasks (id),
        tag_id INTEGER NOT NULL REFERENCES tags (id)
 );
+
+
+ALTER TABLE user_notifications ADD COLUMN id SERIAL PRIMARY KEY;
