@@ -170,11 +170,18 @@
 			   result
 			   eq?)))
 	'()
-	(result->alists (db-query '(select (columns un.id un.user_id un.params nh.name)
-                                     (from (join inner
-                                                 (as user_notifications un)
-                                                 (as notification_handlers nh)
-                                                 (on (= nh.id un.handler_id)))))))))
+	(map (lambda (notification)
+               (let ((params (alist-ref 'params notification)))
+                 (alist-update! 'params
+                                (if (string? params)
+                                    (with-input-from-string params read-file)
+                                    '())
+                                notification)))
+             (result->alists (db-query '(select (columns un.id un.user_id un.params nh.name)
+                                          (from (join inner
+                                                      (as user_notifications un)
+                                                      (as notification_handlers nh)
+                                                      (on (= nh.id un.handler_id))))))))))
 
 (define (tasks-diff? task1 task2)
   (or (any (lambda (col)
@@ -222,39 +229,39 @@
         changes))
 
 ;; Notifies all affected users about changes (a list of the structure
-;; (<event> <old-task> <new-task>)) with event being either `insert'
+;; (<event> <new-task> <old-task>)) with event being either `insert'
 ;; or `update'.
 ;; 
 ;; TODO: Should perhaps also notify users that *were* affected in the
 ;; old-task but aren't anymore in new-task. Currently only users
 ;; affected in new-task are notified.
 (define (notify-users user-id changes)
-  (thread-start! 
-   (lambda ()
-     (with-db-connection
-      (lambda ()
-        (let ((notifyees (group-changes-by-notifyees user-id changes))
-              (user-notifications (select-user-notifications)))
-          (for-each (lambda (notifyee)
-                      (and-let* ((user (car notifyee))
-                                 (changes (cdr notifyee))
-                                 (notifications (alist-ref user user-notifications)))
-                        (for-each (lambda (n)
-                                    (condition-case 
-                                        ((car n)
-                                         user
-                                         (let ((params (alist-ref 'params (cdr n))))
-                                           (if (string? params)
-                                               (with-input-from-string params read-file)
-                                               '()))
-                                         changes)
-                                      (exn () (log-to (error-log)
-                                                      "Error with notification ~A for ~A: ~S"
-                                                      (alist-ref 'id (cdr n))
-                                                      (user-id->name user)
-                                                      (format-error exn)))))
-                                  notifications)))
-                    notifyees)))))))
+  (unless (null? changes)
+    (thread-start!
+     (lambda ()
+       (with-db-connection
+        (lambda ()
+          (let ((notifyees (group-changes-by-notifyees user-id changes))
+                (user-notifications (select-user-notifications)))
+            (for-each (lambda (notifyee)
+                        (and-let* ((user (car notifyee))
+                                   (changes (cdr notifyee))
+                                   (notifications (alist-ref user user-notifications)))
+                          (for-each (lambda (n)
+                                      (thread-start!
+                                       (lambda ()
+                                         (condition-case
+                                             ((car n)
+                                              user
+                                              (alist-ref 'params (cdr n))
+                                              changes)
+                                           (exn () (log-to (error-log)
+                                                           "Error with notification ~A for ~A: ~S"
+                                                           (alist-ref 'id (cdr n))
+                                                           (user-id->name user)
+                                                           (format-error exn)))))))
+                                    notifications)))
+                      notifyees))))))))
 
 (define (row-task row #!optional remove-sql-nulls? (num 0))
   (let* ((task (row-alist row num))
