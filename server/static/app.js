@@ -264,7 +264,12 @@ $(function() {
                     }));
 
         shadow.show(screen);
-        $("#login-user").get(0).focus();
+
+        if ($("#login-user").val().length) {
+            $("#login-password").get(0).focus();
+        } else {
+            $("#login-user").get(0).focus();
+        }
     }
 
     div("messages");
