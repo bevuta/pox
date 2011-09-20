@@ -11,4 +11,6 @@
                depends: '("pox-model" "pox-db/helpers" "pox-auth" "pox-log")
                includes: '("web"))
   (scheme-file "pox-db/helpers" depends: '("pox-db" "pox-log"))
-  (scheme-file "pox-auth"))
+  (scheme-file "pox-auth")
+  (scheme-file "pox-notification/stdout" depends: '("pox-notification"))
+  (scheme-file "pox-notification/vandusen" depends: '("pox-notification")))

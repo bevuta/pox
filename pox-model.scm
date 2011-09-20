@@ -68,9 +68,10 @@
   (remove (compose sql-null? cdr) l))
 
 (define tasks-query
-  `(select (columns creator creator_id
+  `(select (columns creator  creator_id
                     assigner assigner_id
-                    assignee  assignee_id
+                    assignee assignee_id
+                    updater  updater_id
                     id
                     created_at
                     revision
@@ -164,7 +165,8 @@
   (fold (lambda (n result)
 	  (let ((user-id (alist-ref 'user_id n)))
 	    (alist-update! user-id
-			   (cons (cons (notification-ref (string->symbol (alist-ref 'name n))) (alist-ref 'params n))
+			   (cons (cons (notification-ref (string->symbol (alist-ref 'name n)))
+                                       (alist-ref 'params n))
 				 (or (alist-ref user-id result) '()))
 			   result
 			   eq?)))
@@ -185,6 +187,7 @@
                   (or (alist-ref 'tags task2) '())))))
 
 ;; FIXME: this is probably not required anymore as tasks should always contain user names now
+;; ok, we still need for adding the names back in after saving a task
 (define (task-with-user-names task)
   (fold (lambda (field task)
 	  (alist-update! field 
@@ -193,10 +196,11 @@
 	task
 	'(assigner assignee creator updater)))
 
+(define (task-user-id-field? f)
+  (memq (car f) '(assigner_id assignee_id creator_id updater_id)))
+
 (define (task-notifyees task)
-  (define (user-field? f)
-    (member (car f) '(assigner_id assignee_id creator_id updater_id)))
-  (delete-duplicates (map cdr (filter user-field? task))))
+  (delete-duplicates (map cdr (filter task-user-id-field? task))))
 
 (define (format-error e)
   (format "Error: ~A~A" 
@@ -206,35 +210,50 @@
 		""
 		(apply conc (cons ": " args))))))
 
-(define (task-notify notifications action task old-task)
+(define (group-changes-by-notifyees user-id changes)
+  (fold (lambda (change notifyees)
+          (fold (lambda (notifyee notifyees)
+                  (alist-update! notifyee
+                                 (cons change
+                                       (or (alist-ref notifyee notifyees) '()))
+                                 notifyees))
+                notifyees
+                (delete user-id (task-notifyees (cadr change)))))
+        '()
+        changes))
+
+;; Notifies all affected users about changes (a list of the structure
+;; (<event> <old-task> <new-task>)) with event being either `insert'
+;; or `update'.
+;; 
+;; TODO: Should perhaps also notify users that *were* affected in the
+;; old-task but aren't anymore in new-task. Currently only users
+;; affected in new-task are notified.
+(define (notify-users user-id changes)
   (thread-start! 
    (lambda ()
-     (with-db-connection 
+     (with-db-connection
       (lambda ()
-	(parameterize ((user-map (select-users)))
-	  (let ((task     (and task (task-with-user-names task)))
-		(old-task (and old-task (task-with-user-names old-task))))
-
-	    (for-each (lambda (notification)
-			(let ((user (car notification)))
-			  (for-each (lambda (n)
-				      (condition-case 
-					  ((car n) 
-					   user 
-					   (if (string? (cdr n))
-					       (with-input-from-string (cdr n) read-file)
-					       '()) 
-					   action
-					   task
-					   old-task)
-					  (exn () (log-to (error-log)
-							  "Error with notification for ~A: ~A"
-							  user
-							  (format-error exn)))))
-				    (cdr notification))))
-		      (filter identity
-			      (map (cut assq <> notifications)
-				   (task-notifyees task)))))))))))
+        (let ((notifyees (group-changes-by-notifyees user-id changes))
+              (user-notifications (select-user-notifications)))
+          (for-each (lambda (notifyee)
+                      (and-let* ((user (car notifyee))
+                                 (changes (cdr notifyee))
+                                 (notifications (alist-ref user user-notifications)))
+                        (for-each (lambda (n)
+                                    (condition-case 
+                                        ((car n)
+                                         user
+                                         (if (string? (cdr n))
+                                             (with-input-from-string (cdr n) read-file)
+                                             '()) 
+                                         changes)
+                                      (exn () (log-to (error-log)
+                                                      "Error with notification for ~A: ~S"
+                                                      user
+                                                      (condition->list exn)))))
+                                  notifications)))
+                    notifyees)))))))
 
 (define (row-task row #!optional remove-sql-nulls? (num 0))
   (let* ((task (row-alist row num))
@@ -300,7 +319,7 @@
 					      task))
 			   (task (alist-delete 'assignee task))
 			   (task (alist-delete 'assigner task)))
-		      task)))
+		      (remove-sql-nulls task))))
 
 	 (insert (lambda (task user-id)
                    (let* ((task (alist-update! 'creator_id user-id task))
@@ -312,12 +331,12 @@
 		   (alist->ssql-update 'tasks (alist-delete 'tags task)
                                        conditions: `(= revision ,(sub1 (alist-ref 'revision task))))))
 
-	 (save   (lambda (user-id task notifications)
+	 (save   (lambda (user-id task)
 		   (let* ((old-task (alist-ref 'id task))
                           (old-task (and old-task (select-task old-task)))
                           (old-task (and old-task
                                          (< 0 (row-count old-task))
-                                         (row-task old-task)))
+                                         (row-task old-task #t)))
 			  (task      (prepare user-id task old-task))
 			  (action    (if old-task
 					 (and (tasks-diff? old-task task) 'update)
@@ -332,30 +351,39 @@
 			  (task      (if (and result (not (zero? (row-count result))))
 					 (alist-merge (row-alist result) task)
 					 task))
+                          (task      (task-with-user-names task))
 			  (affected  (and result (affected-rows result))))
 
 		     (or (not affected)
 			 (and (= 1 affected)
 			      (begin
                                 (persist-tags task)
-				(task-notify notifications action task old-task)
-				#t)))))))
+				(list action task old-task)))))))
+         (save-all (lambda (user-id tasks)
+                     (fold-right (lambda (task result)
+                                   (let ((change (save user-id task)))
+                                     (if change
+                                         (if (pair? change)
+                                             (cons (cons change (car result))
+                                                   (cdr result))
+                                             result)
+                                         (let* ((new-task (select-task (alist-ref 'id task)))
+                                                (new-task (and (< 0 (row-count new-task)) (row-task new-task #t)))
+                                                (task (if new-task
+                                                          (alist-update! 'revision (alist-ref 'revision new-task) task)
+                                                          task)))
+                                           (cons (car result)
+                                                 (cons (list task new-task)
+                                                       (cdr result)))))))
+                                 '(())
+                                 tasks))))
 
     (lambda (user-id tasks)
       (with-transaction (db-connection)
         (lambda ()
-          (let ((notifications (select-user-notifications)))
-            (fold-right (lambda (task conflicts)
-                          (if (save user-id task notifications)
-                              conflicts
-                              (let* ((new-task (select-task (alist-ref 'id task)))
-                                     (new-task (and (< 0 (row-count new-task)) (row-task new-task #t)))
-                                     (task (if new-task
-                                               (alist-update! 'revision (alist-ref 'revision new-task) task)
-                                               task)))
-                                (cons (list task new-task) conflicts))))
-                        '()
-                        tasks)))))))
+          (let ((results (save-all user-id tasks)))
+            (notify-users user-id (car results))
+            (cdr results)))))))
 
 (define (task-list->string tasks user #!optional origin)
   (with-output-to-string (cut downtime-write tasks user origin)))

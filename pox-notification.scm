@@ -1,9 +1,9 @@
 (module pox-notification
 
-(register-notification-handler notification-ref format-event notification-initialize)
+(register-notification-handler notification-ref notification-initialize change->notification)
 
-(import chicken scheme data-structures)
-(use postgresql downtime pox-db pox-db/helpers)
+(import chicken scheme)
+(use data-structures extras postgresql downtime pox-db pox-db/helpers)
 
 (define notification-handlers '())
 
@@ -21,10 +21,10 @@
 				      (signal exn)))))
 	       (map (compose symbol->string car) notification-handlers)))))
 
-(define (format-event user-id event new old)
-  (conc (alist-ref 'updater new)
-	": "
-	(task->item-line new user-id)))
+(define (change->notification user-id change)
+  (sprintf "~A: ~A"
+           (alist-ref 'updater (cadr change))
+           (task->item-line (cadr change) user-id)))
 
 (define (notification-ref name)
   (alist-ref name notification-handlers))
