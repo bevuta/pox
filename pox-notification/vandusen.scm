@@ -17,7 +17,8 @@
         (tcp-connect (config-ref 'host params) (config-ref 'port params))
       (for-each (lambda (change)
                   (fprintf out "~A ~A~%"
-                           (alist-ref 'recipient params)
+                           (or (alist-ref 'recipient params) 
+                               (error 'pox-notification/vandusen "missing recipient"))
                            (change->notification user change)))
                 changes)
       (flush-output out)
