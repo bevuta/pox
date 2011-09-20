@@ -1,10 +1,8 @@
-((egg "pox.egg")
- (synopsis "pox task management")
+((synopsis "pox task management")
  (author "Moritz Heidkamp")
  (category tools)
  (license "GPL")
- (needs intarweb uri-common matchable getopt-long pool postgresql hato-smtp
+ (needs intarweb uri-common matchable getopt-long pool postgresql hato
         medea spiffy-request-vars spiffy-uri-match spiffy ssql ssql-postgresql
         sxml-transforms spiffy-session spiffy-auth spiffy-system spiffy-chain)
- (text-depends test)
- (files "pox-mail.scm" "pox.setup"))
+ (text-depends test))
