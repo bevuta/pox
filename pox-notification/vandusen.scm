@@ -20,6 +20,7 @@
                            (alist-ref 'recipient params)
                            (change->notification user change)))
                 changes)
+      (flush-output out)
       (close-input-port in)
       (close-output-port out))))
 
