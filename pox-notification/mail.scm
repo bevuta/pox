@@ -3,16 +3,16 @@
 (notification-mail-from)
 
 (import chicken scheme)
-(use data-structures pox-notification pox-mail)
+(use extras data-structures pox-notification pox-mail pox-model)
 
 (define notification-mail-from (make-parameter #f))
 
 (register-notification-handler 'mail
-  (lambda (user params event new old)
-    (unless (= user (alist-ref 'updater_id new))
-      (send-mail To:	  (alist-ref 'recipient params)
-		 From:	  (or (alist-ref 'from params) (notification-mail-from))
-		 Subject: (format-event user event new old)
-		 Body:	  (alist-ref 'description new)))))
+  (lambda (user params changes)
+    (send-mail To:      (alist-ref 'recipient params)
+               From:    (or (alist-ref 'from params) (notification-mail-from))
+               Subject: (sprintf (or (alist-ref 'subject params) "[pox] changes by ~A")
+                                 (alist-ref 'updater (cadar changes)))
+               Body:    (task-list->string (map cadr changes) user))))
 
 )
