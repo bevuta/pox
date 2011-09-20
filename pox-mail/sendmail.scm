@@ -2,8 +2,8 @@
 
 (sendmail-program sendmail-default-headers sendmail-send)
 
-(import chicken scheme posix)
-(use hato-smtp)
+(import chicken scheme)
+(use posix hato-smtp)
 
 (define sendmail-program (make-parameter "/usr/bin/sendmail -t"))
 
@@ -12,8 +12,8 @@
 
 (define (sendmail-send . args)
   (receive (in out pid)
-    (process (sendmail-program))
-    (apply smtp-write-message (cons out (append args (sendmail-default-headers))))
+      (process (sendmail-program))
+    (apply smtp-write-message out (append args (sendmail-default-headers)))
     (close-output-port out)))
 
 )
