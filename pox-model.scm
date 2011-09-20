@@ -165,13 +165,12 @@
   (fold (lambda (n result)
 	  (let ((user-id (alist-ref 'user_id n)))
 	    (alist-update! user-id
-			   (cons (cons (notification-ref (string->symbol (alist-ref 'name n)))
-                                       (alist-ref 'params n))
+			   (cons (cons (notification-ref (string->symbol (alist-ref 'name n))) n)
 				 (or (alist-ref user-id result) '()))
 			   result
 			   eq?)))
 	'()
-	(result->alists (db-query '(select (columns un.user_id un.params nh.name)
+	(result->alists (db-query '(select (columns un.id un.user_id un.params nh.name)
                                      (from (join inner
                                                  (as user_notifications un)
                                                  (as notification_handlers nh)
@@ -244,14 +243,16 @@
                                     (condition-case 
                                         ((car n)
                                          user
-                                         (if (string? (cdr n))
-                                             (with-input-from-string (cdr n) read-file)
-                                             '()) 
+                                         (let ((params (alist-ref 'params (cdr n))))
+                                           (if (string? params)
+                                               (with-input-from-string params read-file)
+                                               '()))
                                          changes)
                                       (exn () (log-to (error-log)
-                                                      "Error with notification for ~A: ~S"
-                                                      user
-                                                      (condition->list exn)))))
+                                                      "Error with notification ~A for ~A: ~S"
+                                                      (alist-ref 'id (cdr n))
+                                                      (user-id->name user)
+                                                      (format-error exn)))))
                                   notifications)))
                     notifyees)))))))
 
