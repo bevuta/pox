@@ -5,6 +5,12 @@
      spiffy-uri-match pox-db/helpers pox-model downtime uri-common
      irregex pox-auth spiffy-chain spiffy-auth spiffy-session pox-log)
 
+(define-logger log server)
+(define-log-category auth)
+(define-log-category session)
+(define-log-category request)
+(define-log-category headers)
+
 (include "web")
 
 (http-status-codes
@@ -109,7 +115,7 @@
 (session-cookie-name "pox-sid")
 
 (get-session-id (lambda ()
-                  (log debug: auth: session: "checking cookie")
+                  (log (debug auth session) "checking cookie")
                   (or (get-session-id-from-cookie)
                       (let ((headers (request-headers (current-request))))
                         (and (eq? 'x-session (header-value 'authorization headers))
@@ -133,8 +139,8 @@
      (send-response status: 'internal-server-error body: message))))
 
 (define (with-request-dump continue)
-  (log debug: request: headers:
-       (headers->list (request-headers (current-request))))
+  (log (debug request headers)
+       (cons 'headers (headers->list (request-headers (current-request)))))
   (continue))
 
 

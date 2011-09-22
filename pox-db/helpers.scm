@@ -12,13 +12,18 @@
 (use srfi-1 postgresql pox-db pox-log ssql)
 (require-library ssql-postgresql)
 
+(define-logger log db)
+(define-log-category query)
+(define-log-category sql)
+(define-log-category ssql)
+
 (define (->sql stmt)
   (if (string? stmt)
       (begin
-        (log debug: db: query: sql: stmt)
+        (log (debug query sql) (list 'statement stmt))
         stmt)
       (begin 
-        (log debug: db: query: ssql: stmt)
+        (log (debug query ssql) (list 'statement stmt))
         (->sql (ssql->sql (db-connection) stmt)))))
 
 (define (alist->ssql-insert table alist)
@@ -45,11 +50,8 @@
           (map cdr alist))))
 
 (define (db-query statement #!optional (vars '()))
-  (log debug: db: query: ssql: statement vars)
   (query* (db-connection)
-	  (let ((sql (->sql statement)))
-            (log debug: db: query: sql: sql)
-            sql)
+	  (->sql statement)
 	  vars))
 
 (define (db-compose-query a b)

@@ -11,7 +11,9 @@
   (load "pox.system")
   (load-system pox)))
 
-(use chicken-syntax spiffy spiffy-chain spiffy-system pox-server)
+(use chicken-syntax uri-common spiffy spiffy-chain spiffy-system pox-server)
+
+(server-port 7040)
 
 (load "init")
 (include "boot")
@@ -27,10 +29,18 @@
    (compiling
     pox-handler)
    (else
-    (chain (with-system pox development?) 
+    (chain (with-system pox development?)
            pox-handler))))
 
 (vhost-map `((".*" . ,handler)))
 
-(print "listening on http://localhost:7040/")
+(define-logger log server)
+
+(log (info)
+     `((state . listening)
+       (uri ,(uri->string (update-uri (uri-reference "")
+                                      scheme: (if (secure-connection?) 'https 'http)
+                                      port: (server-port)
+                                      host: (or (server-bind-address)
+                                                "0.0.0.0"))))))
 (start-server port: 7040)
