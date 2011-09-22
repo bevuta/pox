@@ -12,14 +12,14 @@
   (or (alist-ref setting params) (alist-ref setting (vandusen-config))))
 
 (register-notification-handler 'vandusen
-  (lambda (user params changes)
+  (lambda (user notifyee params changes)
     (receive (in out)
         (tcp-connect (config-ref 'host params) (config-ref 'port params))
       (for-each (lambda (change)
                   (fprintf out "~A ~A~%"
                            (or (alist-ref 'recipient params) 
                                (error 'pox-notification/vandusen "missing recipient"))
-                           (change->notification user change)))
+                           (change->notification user notifyee change)))
                 changes)
       (flush-output out)
       (close-input-port in)

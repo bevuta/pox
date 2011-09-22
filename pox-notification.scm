@@ -25,10 +25,10 @@
                                        (signal exn)))))
                (map (compose symbol->string car) notification-handlers)))))
 
-(define (change->notification user-id change)
+(define (change->notification user notifyee change)
   (sprintf "~A: ~A"
-           (alist-ref 'updater (cadr change))
-           (task->item-line (cadr change) user-id)))
+           user
+           (task->item-line (cadr change) notifyee)))
 
 (define (notification-ref name)
   (alist-ref name notification-handlers))

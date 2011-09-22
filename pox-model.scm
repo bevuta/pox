@@ -23,6 +23,10 @@
 (use downtime)
 (use pox-db pox-db/helpers)
 (use pox-notification)
+(use pox-log)
+
+(define-logger log model)
+(define-log-category notification)
 
 (define (alist-merge l1 l2)
   (fold-right (lambda (a l)
@@ -243,22 +247,31 @@
         (lambda ()
           (let ((notifyees (group-changes-by-notifyees user-id changes))
                 (user-notifications (select-user-notifications)))
-            (for-each (lambda (notifyee)
-                        (and-let* ((user (car notifyee))
-                                   (changes (cdr notifyee))
-                                   (notifications (alist-ref user user-notifications)))
+            (for-each (lambda (notifyee/changes)
+                        (and-let* ((notifyee (car notifyee/changes))
+                                   (changes (cdr notifyee/changes))
+                                   (notifications (alist-ref notifyee user-notifications))
+                                   (notifyee (user-id->name notifyee))
+                                   (user (user-id->name user-id)))
+                          (log (info notification) 
+                               (cons 'user user)
+                               (cons 'notifyee notifyee))
                           (for-each (lambda (n)
+                                      (log (debug notification)
+                                           (cons 'notification (cdr n))
+                                           (cons 'changes changes))
                                       (thread-start!
                                        (lambda ()
                                          (condition-case
                                              ((car n)
                                               user
+                                              notifyee
                                               (alist-ref 'params (cdr n))
                                               changes)
                                            (exn () (log-to (error-log)
                                                            "Error with notification ~A for ~A: ~S"
                                                            (alist-ref 'id (cdr n))
-                                                           (user-id->name user)
+                                                           user
                                                            (format-error exn)))))))
                                     notifications)))
                       notifyees))))))))
