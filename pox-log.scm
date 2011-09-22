@@ -29,17 +29,18 @@
 
 (define-syntax define-logger
   (syntax-rules ()
-    ((_ log component)
+    ((_ log component ...)
      (begin
        (use (only ports with-output-to-string)
-            (only srfi-1 cons*))
-       (define-log-category component)
+            (only srfi-1 cons*)
+            (only extras pp sprintf))
+       (define-log-category component) ...
        (define-syntax log
          (ir-macro-transformer
           (lambda (x i c)
             (if (null? (second x))
                 (error 'log "log category is mandatory")
-                (let* ((categories `(component . ,(second x)))
+                (let* ((categories `(component ... . ,(second x)))
                        (body (cddr x)))
                   `(find-and-apply-senders
                     ',categories
