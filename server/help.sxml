@@ -5,10 +5,14 @@
       "meta     = \"#\" (<id> (\":\" <revision>)?)? <property>*\n"
       "id       = [[:digit:]]+\n"
       "revision = [[:digit:]]+\n"
-      "priority = [[:digit:]]\n"
+      "priority = [[:digit:]] ; default: 0\n"
       "property = \">\" <assignee> | \"<\" <assigner> | \n"
       "           [-+] <priority> | \":\" <tag>\n"
       "grouping = \"#\"+ <property>*")
+ (h3 "Keys")
+ (dl
+  (dt "Ctrl+Alt+S")
+  (dd "Save contents of editing area. On success the current view is refreshed. Conflicts are displayed in the editing area to be resolved."))
  (h3 "Task Examples")
  (dl
   (dt "A new task for yourself:")

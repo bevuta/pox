@@ -10,10 +10,14 @@ $(function() {
 "meta     = &quot;#&quot; (&lt;id&gt; (&quot;:&quot; &lt;revision&gt;)?)? &lt;property&gt;*",
 "id       = [[:digit:]]+",
 "revision = [[:digit:]]+",
-"priority = [[:digit:]]",
+"priority = [[:digit:]] ; default: 0",
 "property = &quot;&gt;&quot; &lt;assignee&gt; | &quot;&lt;&quot; &lt;assigner&gt; | ",
 "           [-+] &lt;priority&gt; | &quot;:&quot; &lt;tag&gt;",
 "grouping = &quot;#&quot;+ &lt;property&gt;*</pre>",
+"<h3>Keys</h3>",
+"<dl>",
+"<dt>Ctrl+Alt+S</dt>",
+"<dd>Save contents of editing area. On success the current view is refreshed. Conflicts are displayed in the editing area to be resolved.</dd></dl>",
 "<h3>Task Examples</h3>",
 "<dl>",
 "<dt>A new task for yourself:</dt>",
@@ -52,7 +56,7 @@ $(function() {
 "<pre># :bug",
 "* this is an important bug # :important",
 "## :critical",
-"* this is a critical bug</pre></dd></dl>"
+"* this is a critical bug</pre></dd></dl>",
 ].join("\n")
         ));
 
