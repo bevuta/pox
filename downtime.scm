@@ -272,13 +272,26 @@
 
 (define (task-assignment->string task)
   (let ((assignee (alist-ref 'assignee task))
-	(assigner (alist-ref 'assigner task)))
-    (and (not (equal? assignee assigner))
-	 (if (not (equal? assigner (current-user)))
-	     (and (not (scoped? 'assigner))
-		  (format-task-attribute 'assigner assigner))
-	     (and (not (scoped? 'assignee))
-		  (format-task-attribute 'assignee assignee))))))
+	(assigner (alist-ref 'assigner task))
+        (creator  (alist-ref 'creator task)))
+
+    (if (equal? assignee assigner)
+        (and creator assigner assignee
+             (not (equal? creator assigner))
+             (equal? creator (current-user))
+             (cond ((scoped? 'assigner)
+                    (format-task-attribute 'assignee assignee))
+                   ((scoped? 'assignee)
+                    (format-task-attribute 'assigner assigner))
+                   (else
+                    (sprintf "~A ~A"
+                             (format-task-attribute 'assigner assigner)
+                             (format-task-attribute 'assignee assignee)))))
+        (if (equal? assigner (current-user))
+            (and (not (scoped? 'assignee))
+                 (format-task-attribute 'assignee assignee))
+            (and (not (scoped? 'assigner))
+                 (format-task-attribute 'assigner assigner))))))
 
 (define (task-done->string t)
   (and (alist-ref 'done t) "done"))

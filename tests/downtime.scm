@@ -202,3 +202,34 @@ baz")
 
 (test-write "* foo #2 < bar  \n\n" #f
             '(((id . 2) (name . "foo") (assigner . "bar"))))
+
+(test-group "creator = A, assignee = assigner = B"
+  (test-write "* check #1 < bar > bar  \n\n"
+              "foo"
+              '(((id . 1)
+                 (name . "check")
+                 (creator . "foo")
+                 (assigner . "bar")
+                 (assignee . "bar"))))
+
+  (test-write "# > bar\n* check #1 < bar  \n\n"
+              "foo"
+              '(group assignee
+                      ("bar"
+                       ((id . 1)
+                        (name . "check")
+                        (creator . "foo")
+                        (assigner . "bar")
+                        (assignee . "bar")))))
+
+  (test-write "# < bar\n* check #1 > bar  \n\n"
+              "foo"
+              '(group assigner
+                      ("bar"
+                       ((id . 1)
+                        (name . "check")
+                        (creator . "foo")
+                        (assigner . "bar")
+                        (assignee . "bar"))))))
+
+(test-exit)
