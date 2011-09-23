@@ -35,8 +35,8 @@
                 (error 'log "log category is mandatory")
                 (let* ((categories `(component ... . ,(second x)))
                        (body (cddr x)))
-                  `(find-and-apply-senders
-                    ',categories
+                  `(log-for
+                    ,categories
                     "~A"
                     (with-output-to-string
                         (lambda ()
