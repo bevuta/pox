@@ -11,6 +11,10 @@
 
 (define (smtp-send . args)
   (log (debug) (cons 'mail args))
-  (apply send-mail (append (smtp-config) args)))
+  (let ((failures (apply send-mail (append (smtp-config) args))))
+    (or (null? failures)
+        (log (critical)
+             '(message . "could not send mail")
+             (cons 'failures failures)))))
 
 )
