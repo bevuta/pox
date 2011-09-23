@@ -20,7 +20,7 @@
                           (system-components pox))))
  '((version "0.0.1")))
 
-(compile run.scm -o pox-server)
+(compile start-pox-server.scm -o pox-server)
 
 (install-program
  'pox-server-cmd
