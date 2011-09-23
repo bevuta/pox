@@ -1,15 +1,11 @@
 (module pox-log
 
-(log-for define-logger log-target)
+(log-for define-logger with-output-to-string cons* pp sprintf log-target)
 
 (import chicken scheme)
-(use extras srfi-69 log5scm)
+(use extras ports srfi-1 srfi-69 log5scm)
 
 (reexport (rename log5scm (define-category define-log-category)))
-
-(begin-for-syntax
- (import chicken)
- (use srfi-1))
 
 (define-category debug)
 (define-category info)
@@ -31,9 +27,6 @@
   (syntax-rules ()
     ((_ log component ...)
      (begin
-       (use (only ports with-output-to-string)
-            (only srfi-1 cons*)
-            (only extras pp sprintf))
        (define-log-category component) ...
        (define-syntax log
          (ir-macro-transformer
