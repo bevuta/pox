@@ -22,6 +22,14 @@
 (define (irregex-match->task m)
   (irregex-match->alist m '(id revision name meta)))
 
+(define (irregex-match-substrings m)
+  (let ((num (irregex-match-num-submatches m)))
+    (let loop ((i 1))
+      (if (> i num)
+          '()
+          (cons (irregex-match-substring m i)
+                (loop (+ i 1)))))))
+
 (define (append-task-description task description)
   (alist-update! 'description 
 		 (conc (or (alist-ref 'description task) "")
@@ -103,53 +111,61 @@
 (define (scope-stack-pop n)
   (scope-stack (drop (scope-stack) n)))
 
+(define +blank+ (irregex '(seq (* space))))
+
+(define (butlast+last lst)
+  (if (null? lst)
+      (error 'butlast+last "null argument")
+      (let loop ((head '()) (lst lst))
+        (if (null? (cdr lst))
+            (values (reverse head) (car lst))
+            (loop (cons (car lst) head) (cdr lst))))))
+
+(define parse-meta
+  (let* ((assign-to (lambda (key #!optional (conversion identity))
+                      (lambda (meta . vals)
+                        (alist-update! key (apply conversion vals) meta))))
+         (tokens `(((seq ">" (* space) (submatch (+ (~ space))))
+                    . ,(assign-to 'assignee))
+                   ((seq "<" (* space) (submatch (+ (~ space))))
+                    . ,(assign-to 'assigner))
+                   ((seq (submatch ("+-") (= 1 numeric)))
+                    . ,(assign-to 'priority string->number))
+                   ((seq ":" (submatch (+ (~ space))))
+                    . ,(lambda (meta val)
+                         (alist-update! 'tags 
+                                        (cons val (or (alist-ref 'tags meta) '()))
+                                        meta)))
+                   ((seq (submatch (or "done" "to do")))
+                    . ,(assign-to 'done (lambda (val) (string=? val "done"))))
+                   ((seq (submatch (or "uncategorized" (seq "/" (+ (~ space))))))
+                    . ,(lambda (meta val)
+                         (alist-update! 'category 
+                                        (and (not (string=? val "uncategorized")) val)
+                                        meta)))))
+         (tokens (map (lambda (token)
+                        (cons (irregex `(seq (* space) ,(car token) (submatch (* any))))
+                              (cdr token)))
+                      tokens)))
+
+    (lambda (meta-line)
+      (and meta-line
+           (let next ((rest meta-line) (result '()))
+             (if (irregex-match +blank+ rest)
+                 result
+                 (let try-parse ((tokens tokens))
+                   (if (null? tokens)
+                       (error (format "invalid meta data: ~A" meta-line))
+                       (let* ((match (irregex-match (caar tokens) rest))
+                              (match (and match (irregex-match-substrings match))))
+                         (if match
+                             (receive (args rest) (butlast+last match)
+                               (next rest (apply (cdar tokens) result args)))
+                             (try-parse (cdr tokens))))))))))))
+
 (define parse-line
-  (let* ((blank        (irregex '(seq (* space))))
-
-	 (description  (irregex '(seq (submatch (or (seq (~ "*") (* any))
+  (let* ((description  (irregex '(seq (submatch (or (seq (~ "*") (* any))
 						    (seq "**" (* any)))))))
-
-	 (parse-meta   (let* ((parts       `((assignee (seq ">" (* space) (submatch-named assignee (+ (~ space)))))
-					     (assigner (seq "<" (* space) (submatch-named assigner (+ (~ space)))))
-					     (priority (seq (submatch-named priority ("+-") (= 1 numeric)))
-                                                       ,(lambda (key value meta)
-                                                          (alist-update! key (string->number value) meta)))
-                                             (tag      (seq ":" (submatch-named tag (+ (~ space))))
-                                                       ,(lambda (key value meta)
-                                                          (alist-update! 'tags (cons value (or (alist-ref 'tags meta) '())) meta)))
-					     (done     (seq (submatch-named done (or "done" "to do"))) 
-						       ,(lambda (key value meta) 
-                                                          (alist-update! key (string=? value "done") meta)))
-					     (category (seq (submatch-named category (or "uncategorized" (seq "/" (+ (~ space))))))
-						       ,(lambda (key value meta) 
-                                                          (alist-update! key (if (string=? value "uncategorized") #f value) meta)))))
-
-			      (part-names   (map car parts))
-			      (append-meta  (map (lambda (part)
-						   (cons (car part) (if (null? (cddr part))
-									alist-update!
-									(caddr part))))
-						 parts))
-                              (meta         (irregex `(seq (* space) (or ,@(map cadr parts)) 
-                                                           (submatch-named rest (* any))))))
-			 
-			 (lambda (meta-line)
-			   (and meta-line
-				(let next ((rest meta-line)
-					   (result '()))
-				  
-				  (if (irregex-match blank rest)
-				      result
-				      (let ((match (irregex-match meta rest)))
-					(if match
-					    (next (irregex-match-substring match 'rest)
-						  (fold (lambda (pair result)
-                                                          ((alist-ref (car pair) append-meta)
-                                                           (car pair) (cdr pair) result))
-                                                        result
-                                                        (irregex-match->alist match part-names)))
-					    (error (format "invalid meta data: ~A" meta-line))))))))))
-
 	 (item         (let* ((name     `(seq (submatch-named name (* (~ "#")) (~ space "#")) (* space)))
 			      (id       `(seq (submatch-named id (+ numeric))))
 			      (revision `(seq (submatch-named revision (+ numeric)))))
@@ -165,7 +181,7 @@
 			     (converter match))))))
 
     (lambda (line result)
-      (or (cond ((irregex-match blank line) => 
+      (or (cond ((irregex-match +blank+ line) => 
 		 (lambda _
 		   (if (eq? 'description (last-item))
 		       (cons (append-task-description (car result) "") (cdr result))
@@ -193,7 +209,7 @@
 			   result)
 
 			 (error (format "illegal nesting: ~A" line))))))
-		
+
 		((starts-with? '(seq "*" (look-ahead (~ "*"))) line) => 
 		 (convert-to item
 			     (lambda (item)
@@ -208,18 +224,18 @@
 						 (alist-delete 'category (scope))
 						 (scope)))
 				      (task  (task-update scope task)))
-				 (last-item 'task)
-				 (cons task result)))))
+                                 (last-item 'task)
+                                 (cons task result)))))
 
-		((irregex-match description line) => 
-		 (lambda (description)
-		   (unless (member (last-item) '(task description))
-		     (error 'parse-line (format "description before item: ~A" line)))
+                ((irregex-match description line) => 
+                 (lambda (description)
+                   (unless (member (last-item) '(task description))
+                     (error 'parse-line (format "description before item: ~A" line)))
 
-		   (last-item 'description)
-		   (cons (append-task-description (car result)
-						  (string-trim-right (irregex-match-substring description 1)))
-			 (cdr result))))
+                   (last-item 'description)
+                   (cons (append-task-description (car result)
+                                                  (string-trim-right (irregex-match-substring description 1)))
+                         (cdr result))))
 
 		
 		(else #f))
