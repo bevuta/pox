@@ -121,28 +121,80 @@
             (values (reverse head) (car lst))
             (loop (cons (car lst) head) (cdr lst))))))
 
+(define (->number n)
+  (if (number? n) n (string->number n)))
+
+(define (update-alist-ref! key alist proc #!optional default (test eq?))
+  (alist-update! key (proc (alist-ref key alist test default)) alist test))
+
+(define editable-task-properties
+  '(assignee assigner priority done category tags description name))
+
+(define (editable-task-property? prop)
+  (memq prop editable-task-properties))
+
 (define parse-meta
-  (let* ((assign-to (lambda (key #!optional (conversion identity))
-                      (lambda (meta . vals)
-                        (alist-update! key (apply conversion vals) meta))))
+  (let* ((assign-property (lambda (#!optional (conversion identity))
+                            (lambda (key meta . vals)
+                              (alist-update! key (apply conversion vals) meta))))
+         (ignore-cmd (lambda (_ meta . keys)
+                       (for-each (lambda (key)
+                                   (unless (editable-task-property? key)
+                                     (error 'parse-meta "invalid property" key)))
+                                 keys)
+                       (update-alist-ref! 'filters
+                                          meta
+                                          (lambda (filters)
+                                            (cons (lambda (task)
+                                                    (fold (lambda (key task)
+                                                            (remove (lambda (p)
+                                                                      (eq? (car p) key))
+                                                                    task))
+                                                          task
+                                                          keys))
+                                                  filters))
+                                          '())))
+         (commands `((assignee . ,(assign-property ->string))
+                     (assigner . ,(assign-property ->string))
+                     (priority . ,(assign-property ->number))
+                     (done     . ,(assign-property
+                                   (lambda (val)
+                                     (string=? val "done"))))
+                     (category . ,(assign-property
+                                   (lambda (val)
+                                     (and (not (string=? val "uncategorized")) val))) )
+                     (tags     . ,(lambda (key meta val)
+                                    (update-alist-ref! key
+                                                       meta
+                                                       (lambda (tags)
+                                                         (cons val tags))
+                                                       '())))
+                     (ignore   . ,ignore-cmd)))
+         (command-ref (lambda (name)
+                        (let ((command (alist-ref name commands)))
+                          (if command
+                              (lambda args
+                                (apply command name args))
+                              (error 'parse-meta "invalid command" command)))))
          (tokens `(((seq ">" (* space) (submatch (+ (~ space))))
-                    . ,(assign-to 'assignee))
+                    . ,(command-ref 'assignee))
                    ((seq "<" (* space) (submatch (+ (~ space))))
-                    . ,(assign-to 'assigner))
+                    . ,(command-ref 'assigner))
                    ((seq (submatch ("+-") (= 1 numeric)))
-                    . ,(assign-to 'priority string->number))
+                    . ,(command-ref 'priority))
                    ((seq ":" (submatch (+ (~ space))))
-                    . ,(lambda (meta val)
-                         (alist-update! 'tags 
-                                        (cons val (or (alist-ref 'tags meta) '()))
-                                        meta)))
+                    . ,(command-ref 'tags))
                    ((seq (submatch (or "done" "to do")))
-                    . ,(assign-to 'done (lambda (val) (string=? val "done"))))
+                    . ,(command-ref 'done))
                    ((seq (submatch (or "uncategorized" (seq "/" (+ (~ space))))))
-                    . ,(lambda (meta val)
-                         (alist-update! 'category 
-                                        (and (not (string=? val "uncategorized")) val)
-                                        meta)))))
+                    . ,(command-ref 'category))
+                   ((seq "@" (submatch (* any)))
+                    ,(lambda (rest)
+                       (with-input-from-string rest
+                         (lambda ()
+                           (values (read) (read-string #f)))))
+                    . ,(lambda (meta command . args)
+                         (apply (command-ref command) meta args)))))
          (tokens (map (lambda (token)
                         (cons (irregex `(seq (* space) ,(car token) (submatch (* any))))
                               (cdr token)))
@@ -159,8 +211,12 @@
                        (let* ((match (irregex-match (caar tokens) rest))
                               (match (and match (irregex-match-substrings match))))
                          (if match
-                             (receive (args rest) (butlast+last match)
-                               (next rest (apply (cdar tokens) result args)))
+                             (let ((update (cdar tokens)))
+                               (if (pair? update)
+                                   (receive (args rest) ((car update) (car match))
+                                     (next rest (apply (cdr update) result args)))
+                                   (receive (args rest) (butlast+last match)
+                                     (next rest (apply update result args)))))
                              (try-parse (cdr tokens))))))))))))
 
 (define parse-line
@@ -242,16 +298,27 @@
 	  (error 'parse-line (format "invalid line: ~A" line))))))
 
 
+(define (apply-filters tasks)
+  (map (lambda (task)
+         (let ((filters (or (alist-ref 'filters task) '()))
+               (task (alist-delete 'filters task)))
+           (fold (lambda (filter task)
+                   (filter task))
+                 task
+                 filters)))
+       tasks))
+
 (define (downtime-read)
   (parameterize ((scope-stack '())
 		 (scope '())
 		 (last-item #f))
-    (unindent-descriptions
-     (reverse (let next ((result '()))
-		(let ((line (read-line)))
-		  (if (eof-object? line)
-		      result
-		      (next (parse-line line result)))))))))
+    (apply-filters
+     (unindent-descriptions
+      (reverse (let next ((result '()))
+                 (let ((line (read-line)))
+                   (if (eof-object? line)
+                       result
+                       (next (parse-line line result))))))))))
 
 
 

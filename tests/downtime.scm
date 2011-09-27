@@ -50,7 +50,7 @@
 
 	   "* important # +4\n*irrelevant#-2")
 
-(test-read '(((priority . +1) (assignee . "bar") (name . "foo")))
+(test-read '(((priority . 1) (assignee . "bar") (name . "foo")))
 	   "* foo # > bar  +1")
 
 (test-read-error "invalid meta data: +22" "*foo#+22")
@@ -231,5 +231,15 @@ baz")
                         (creator . "foo")
                         (assigner . "bar")
                         (assignee . "bar"))))))
+
+(test-group "commands"
+  (test-group "properties"
+    (test-read '(((priority . 2) (assigner . "me") (name . "hey")))
+               "* hey # @(assigner me) @(priority 2)"))
+  (test-group "ignore"
+    (test-read '(((name . "foo") (id . 12))) "
+* foo #12 > bar @(ignore description assignee)\n
+some description that's ignored
+")))
 
 (test-exit)
