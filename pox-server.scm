@@ -135,7 +135,11 @@
 (handle-exception
  (lambda (exn chain)
    (log-to (error-log) "~A" (build-error-message exn chain #t))
-   (let ((message (get-condition-property exn 'exn 'message)))
+   (let* ((message (get-condition-property exn 'exn 'message))
+          (args (get-condition-property exn 'exn 'arguments))
+          (message (cond ((null? args) message)
+                         ((null? (cdr args)) (sprintf "~A: ~S" message (car args)))
+                         (else (sprintf "~A: ~S" message args))))) 
      (send-response status: 'internal-server-error body: message))))
 
 (define (with-request-dump continue)

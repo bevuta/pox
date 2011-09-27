@@ -175,7 +175,7 @@
                           (if command
                               (lambda args
                                 (apply command name args))
-                              (error 'parse-meta "invalid command" command)))))
+                              (error 'parse-meta "invalid command" name)))))
          (tokens `(((seq ">" (* space) (submatch (+ (~ space))))
                     . ,(command-ref 'assignee))
                    ((seq "<" (* space) (submatch (+ (~ space))))
@@ -207,7 +207,7 @@
                  result
                  (let try-parse ((tokens tokens))
                    (if (null? tokens)
-                       (error (format "invalid meta data: ~A" meta-line))
+                       (error "invalid meta data" meta-line)
                        (let* ((match (irregex-match (caar tokens) rest))
                               (match (and match (irregex-match-substrings match))))
                          (if match
@@ -264,7 +264,7 @@
 			   (last-item 'heading)
 			   result)
 
-			 (error (format "illegal nesting: ~A" line))))))
+			 (error 'parse-line "illegal nesting" line)))))
 
 		((starts-with? '(seq "*" (look-ahead (~ "*"))) line) => 
 		 (convert-to item
@@ -286,7 +286,7 @@
                 ((irregex-match description line) => 
                  (lambda (description)
                    (unless (member (last-item) '(task description))
-                     (error 'parse-line (format "description before item: ~A" line)))
+                     (error 'parse-line "description before item" line))
 
                    (last-item 'description)
                    (cons (append-task-description (car result)
@@ -295,7 +295,7 @@
 
 		
 		(else #f))
-	  (error 'parse-line (format "invalid line: ~A" line))))))
+	  (error 'parse-line "invalid line" line)))))
 
 
 (define (apply-filters tasks)

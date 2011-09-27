@@ -16,13 +16,14 @@
 
 (define-syntax test-read-error
   (syntax-rules ()
-    ((_ error text)
+    ((_ error args text)
      (let ((e #f))
        (handle-exceptions exn
-			  (set! e (get-condition-property exn 'exn 'message))
-			  (with-input-from-string text downtime-read))
+         (set! e (list (get-condition-property exn 'exn 'message)
+                       (get-condition-property exn 'exn 'arguments)))
+         (with-input-from-string text downtime-read))
 
-       (test error error e)))))
+       (test error e (list error args))))))
 
 (define-syntax test-write
   (syntax-rules ()
@@ -53,11 +54,11 @@
 (test-read '(((priority . 1) (assignee . "bar") (name . "foo")))
 	   "* foo # > bar  +1")
 
-(test-read-error "invalid meta data: +22" "*foo#+22")
+(test-read-error "invalid meta data" '("+22") "*foo#+22")
 
 (test-read '(((name . "foo"))) "* foo\n\n")
-(test-read-error "invalid meta data: >bla x" "* foo #1\n*bar#>bla x")
-(test-read-error "invalid meta data: bla>blubb" "* foo#bla>blubb")
+(test-read-error "invalid meta data" '(">bla x") "* foo #1\n*bar#>bla x")
+(test-read-error "invalid meta data" '("bla>blubb") "* foo#bla>blubb")
 
 (test-read '(((description . "see, this is\nthe description") (assigner . "wtf") (name . "read below")))
 	   "
@@ -104,7 +105,7 @@ bar
 * first
 * second # > baz")
 
-(test-read-error "illegal nesting: ### > bar" "# > foo\n### > bar")
+(test-read-error "illegal nesting" '("### > bar") "# > foo\n### > bar")
 
 (test-read '(((description . " some\nmulti\n line\n  description") (name . "foo")))
 	   "* foo
@@ -137,11 +138,11 @@ foo")
 * baz
 * ftw # done")
 
-(test-read-error "description before item: foo"
+(test-read-error "description before item" '("foo")
 		 "foo
 * bar")
 
-(test-read-error "description before item: baz"
+(test-read-error "description before item" '("baz")
 		 "* foo
 # > bar
 baz")
@@ -149,7 +150,7 @@ baz")
 (test-read '(((name . "some task") (revision . 2) (id . 10)))
 	   "* some task #10:2")
 
-(test-read-error "invalid meta data: .x"
+(test-read-error "invalid meta data" '(".x")
 		 "* some task #10.x")
 
 
@@ -236,10 +237,15 @@ baz")
   (test-group "properties"
     (test-read '(((priority . 2) (assigner . "me") (name . "hey")))
                "* hey # @(assigner me) @(priority 2)"))
+
   (test-group "ignore"
     (test-read '(((name . "foo") (id . 12))) "
 * foo #12 > bar @(ignore description assignee)\n
-some description that's ignored
-")))
+some descrition that's ignored
+"))
+  
+  (test-group "invalid"
+    (test-read-error "invalid command" '(bar)
+                     "* foo # @(bar)")))
 
 (test-exit)
