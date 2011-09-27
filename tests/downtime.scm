@@ -242,10 +242,14 @@ baz")
     (test-read '(((name . "foo") (id . 12))) "
 * foo #12 > bar @(ignore description assignee)\n
 some descrition that's ignored
-"))
+")
+    (test-read-error "invalid property" '(bla)
+                     "* hehe # @(ignore bla)"))
   
   (test-group "invalid"
     (test-read-error "invalid command" '(bar)
-                     "* foo # @(bar)")))
+                     "* foo # @(bar)")
+    (test-read-error "invalid command syntax" '("@(bar")
+                     "* foo # @(bar")))
 
 (test-exit)

@@ -192,7 +192,10 @@
                     ,(lambda (rest)
                        (with-input-from-string rest
                          (lambda ()
-                           (values (read) (read-string #f)))))
+                           (values (condition-case (read)
+                                     ((exn syntax)
+                                      (error "invalid command syntax" (string-append "@" rest))))
+                                   (read-string #f)))))
                     . ,(lambda (meta command . args)
                          (apply (command-ref command) meta args)))))
          (tokens (map (lambda (token)
