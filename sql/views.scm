@@ -58,6 +58,6 @@
 
 (with-transaction (db-connection)
   (lambda ()
-    (db-query "DROP VIEW tasks_with_tags")
+    (db-query "DROP VIEW IF EXISTS tasks_with_tags")
     (db-query (sprintf "CREATE VIEW tasks_with_tags AS ~A"
                        (ssql->sql (db-connection) full-tasks-query)))))
