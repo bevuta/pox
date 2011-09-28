@@ -1,4 +1,4 @@
-(module pox-server (pox-handler)
+(module pox-server (make-pox-handler)
 
 (import chicken scheme)
 (use spiffy srfi-1 extras ports data-structures intarweb spiffy-request-vars
@@ -153,7 +153,8 @@
       (chain with-authentication handler)
       handler))
 
-(define handle-request
+;; this a procedure to defer setting of parameters through user config
+(define (make-request-handler)
   (chain
    with-request-dump
    with-session
@@ -175,8 +176,11 @@
                       (get-user-tasks continue user)
                       (get-tasks continue)))))))))))
 
-(define (pox-handler continue)
-  (with-db-connection (lambda ()
-                        (handle-request continue))))
+(define (make-pox-handler)
+  (let ((handle-request (make-request-handler)))
+    (lambda (continue)
+      (with-db-connection 
+       (lambda ()
+         (handle-request continue))))))
 
 )

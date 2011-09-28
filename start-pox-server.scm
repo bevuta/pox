@@ -27,10 +27,10 @@
 (define handler
   (cond-expand
    (compiling
-    pox-handler)
+    (make-pox-handler))
    (else
     (chain (with-system pox development?)
-           pox-handler))))
+           (make-pox-handler)))))
 
 (vhost-map `((".*" . ,handler)))
 
