@@ -3,7 +3,7 @@
 (import chicken scheme)
 (use spiffy srfi-1 extras ports data-structures intarweb spiffy-request-vars
      spiffy-uri-match pox-db/helpers pox-model downtime uri-common
-     irregex pox-auth spiffy-chain spiffy-auth spiffy-session pox-log)
+     irregex pox-auth spiffy-chain spiffy-auth spiffy-session pox-log pox-query)
 
 (define-logger log server)
 (define-log-category auth)
@@ -17,9 +17,6 @@
  `((unprocessable-entity 422 . "Unprocessable Entity")
    . ,(http-status-codes)))
 
-(define (list-string->list ls)
-  (if ls (with-input-from-string (format "(~A)" ls) read) '()))
-
 (define (send-page id title content nav)
   (send-sxml-response
    `((head (title ,title))
@@ -30,13 +27,23 @@
                 (h1 ,title))
            (div (@ (data-role "content")) ,content))))))
 
+
+(define (make-request-var-converter convert #!optional default)
+  (lambda (variable params)
+   (let ((val (alist-ref variable params)))
+     (if val (convert val) default))))
+
+(define as-grouping
+  (make-request-var-converter string->grouping '()))
+
+(define as-filter
+  (make-request-var-converter string->filter '()))
+
 (define (send-tasks-response select-tasks #!optional user)
   (parameterize ((user-map (select-users)))
     (with-request-vars* (request-vars source: 'query-string)
-        (group-by filter (include-done as-boolean) (omit-origin as-boolean))
-      (let ((tasks (select-tasks (list-string->list group-by)
-                                 (list-string->list filter)
-                                 include-done)))
+        ((group-by as-grouping) (filter as-filter) (include-done as-boolean) (omit-origin as-boolean))
+      (let ((tasks (select-tasks group-by filter include-done)))
         (if (not tasks)
             (send-response status: 'not-found body: "Not Found")
             (http-accept-case (current-request)
