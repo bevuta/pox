@@ -27,18 +27,6 @@
                 (h1 ,title))
            (div (@ (data-role "content")) ,content))))))
 
-
-(define (make-request-var-converter convert #!optional default)
-  (lambda (variable params)
-   (let ((val (alist-ref variable params)))
-     (if val (convert val) default))))
-
-(define as-grouping
-  (make-request-var-converter string->grouping '()))
-
-(define as-filter
-  (make-request-var-converter string->filter '()))
-
 (define (send-tasks-response select-tasks #!optional user)
   (parameterize ((user-map (select-users)))
     (with-request-vars* (request-vars source: 'query-string)
