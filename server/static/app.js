@@ -161,7 +161,7 @@ $(function() {
             .append($("<input/>").attr({ type: "text", id: "group-by", name: "group-by", value: $.query.get("group-by") }).keyup(refreshOnReturn))
             .append($("<label/>").attr({ "for": "group-by" }).text(" Filter:  "))
             .append($("<input/>").attr({ type: "text", id: "filter", name: "filter", value: $.query.get("filter") }).keyup(refresh))
-            .append($("<input/>").attr({ type: "checkbox", id: "include-done", name: "include-done", value: $.query.get("include-done") }).keyup(refresh))
+            .append($("<input/>").attr({ type: "checkbox", id: "include-done", name: "include-done", value: $.query.get("include-done") }).change(refresh))
             .append($("<label/>").attr({ "for": "include-done" }).text(" include done tasks "))
             .append(button("Show", "show-tasks").click(refresh))
             .append(button("?", "show-help").click(showHelp));
