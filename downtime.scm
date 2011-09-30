@@ -477,8 +477,9 @@
 
 (define write-preamble
   (let ((commands `((origin . ,(lambda (_ origin)
-                                 (list (origin->string origin))))
-                    (ignore . ,(lambda (_ . args) args))
+                                 (and origin (list (origin->string origin)))))
+                    (ignore . ,(lambda (_ . args)
+                                 (and (pair? args) args)))
                     (user   . ,(lambda (_ user) (and user (list (string->symbol user))))))))
     (lambda (preamble skip)
       (let ((printed? #f))
