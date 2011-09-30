@@ -30,7 +30,11 @@
 (define (send-tasks-response select-tasks #!optional user)
   (parameterize ((user-map (select-users)))
     (with-request-vars* (request-vars source: 'query-string)
-        ((group-by as-grouping) (filter as-filter) (include-done as-boolean) (omit-origin as-boolean))
+        ((group-by as-grouping)
+         (filter as-filter)
+         (ignore as-ignore)
+         (include-done as-boolean)
+         (omit-origin as-boolean))
       (let ((tasks (select-tasks group-by filter include-done)))
         (if (not tasks)
             (send-response status: 'not-found body: "Not Found")
@@ -43,7 +47,8 @@
                                      tasks
                                      user
                                      (and (not omit-origin)
-                                          (request-uri (current-request))))))
+                                          (request-uri (current-request)))
+                                     ignore)))
               ((text/html)
                (send-page "tasks"
                           (if user
