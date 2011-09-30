@@ -373,27 +373,16 @@
                tags)))))
 
 (define (task-assignment->string task)
-  (let ((assignee (alist-ref 'assignee task))
-	(assigner (alist-ref 'assigner task))
-        (creator  (alist-ref 'creator task)))
-
-    (if (equal? assignee assigner)
-        (and creator assigner assignee
-             (not (equal? creator assigner))
-             (equal? creator (current-user))
-             (cond ((scoped? 'assigner)
-                    (format-task-attribute 'assignee assignee))
-                   ((scoped? 'assignee)
-                    (format-task-attribute 'assigner assigner))
-                   (else
-                    (sprintf "~A ~A"
-                             (format-task-attribute 'assigner assigner)
-                             (format-task-attribute 'assignee assignee)))))
-        (if (equal? assigner (current-user))
-            (and (not (scoped? 'assignee))
-                 (format-task-attribute 'assignee assignee))
-            (and (not (scoped? 'assigner))
-                 (format-task-attribute 'assigner assigner))))))
+  (let* ((meta (fold (lambda (attr meta)
+                       (let ((name (alist-ref attr task)))
+                         (if (or (not name)
+                                 (equal? (current-user) name)
+                                 (scoped? attr))
+                             meta
+                             (cons (format-task-attribute attr name) meta))))
+                     '()
+                     '(assignee assigner))))
+    (and (pair? meta) (string-intersperse meta " "))))
 
 (define (task-done->string t)
   (and (alist-ref 'done t) "done"))

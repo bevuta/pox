@@ -237,6 +237,15 @@ baz")
                         (assigner . "bar")
                         (assignee . "bar"))))))
 
+(test-group "creator = A, assignee = B, assigner = C"
+  (test-write "* check #1 < bar > baz  \n\n"
+              "foo"
+              '(((id . 1)
+                 (name . "check")
+                 (creator . "foo")
+                 (assigner . "bar")
+                 (assignee . "baz")))))
+
 (test-group "write ignore"
   (test-write "@ignore(description priority)
 
@@ -273,5 +282,25 @@ some descrition that's ignored
                      "* foo # @bar")
     (test-read-error "invalid command syntax" '("@bar(")
                      "* foo # @bar(")))
+
+(test-group "preamble"
+  (test-read '(((name . "foo")))
+             "
+@origin(\"http://foo/bar.dt\")
+@ignore(description)
+
+* foo
+bar baz")
+
+  (test-write '(downtime ((ignore description assigner))
+                         ((id . 99)
+                          (name . "foo bar")
+                          (description . "check")
+                          (assigneer . "bar")
+                          (assignee  . "foo")))
+              "foo"
+              "@ignore(description assigner)
+
+* foo bar #99"))
 
 (test-exit)
