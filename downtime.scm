@@ -3,7 +3,7 @@
 (downtime-read downtime-write task->item-line task->string)
 
 (import chicken scheme extras data-structures)
-(use srfi-1 srfi-13 ports matchable uri-common)
+(use srfi-1 srfi-13 ports matchable uri-common sexpressive)
 
 (require-library regex)
 (import irregex)
@@ -123,7 +123,7 @@
             (loop (cons (car lst) head) (cdr lst))))))
 
 (define (->number n)
-  (if (number? n) n (string->number n)))
+  (if (number? n) n (string->number (->string n))))
 
 (define (update-alist-ref! key alist proc #!optional default (test eq?))
   (alist-update! key (proc (alist-ref key alist test default)) alist test))
@@ -133,6 +133,19 @@
 
 (define (editable-task-property? prop)
   (memq prop editable-task-properties))
+
+(define read-command
+  (let ((command-name-syntax (syntax:symbols))
+        (argument-list-syntax (wrap-syntax (syntax:lists '((#\( . #\))))
+                                           (append (syntax:whitespace)
+                                                   (syntax:symbols)))))
+    (lambda (in)
+      (condition-case
+          (cons (read* in command-name-syntax)
+                (read* in argument-list-syntax))
+        (exn (exn)
+             (and (not (eq? 'read* (get-condition-property exn 'exn 'location)))
+                  (error exn)))))))
 
 (define parse-meta
   (let* ((assign-property (lambda (#!optional (conversion identity))
@@ -191,12 +204,11 @@
                     . ,(command-ref 'category))
                    ((seq "@" (submatch (* any)))
                     ,(lambda (rest)
-                       (with-input-from-string rest
-                         (lambda ()
-                           (values (condition-case (read)
-                                     ((exn syntax)
-                                      (error "invalid command syntax" (string-append "@" rest))))
-                                   (read-string #f)))))
+                       (call-with-input-string rest
+                         (lambda (in)
+                           (values (or (read-command in)
+                                       (error "invalid command syntax" (string-append "@" rest)))
+                                   (read-string #f in)))))
                     . ,(lambda (meta command . args)
                          (apply (command-ref command) meta args)))))
          (tokens (map (lambda (token)

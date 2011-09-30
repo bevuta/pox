@@ -253,20 +253,25 @@ baz")
 (test-group "commands"
   (test-group "properties"
     (test-read '(((priority . 2) (assigner . "me") (name . "hey")))
-               "* hey # @(assigner me) @(priority 2)"))
+               "* hey # @assigner(me) @priority(2)"))
 
   (test-group "ignore"
     (test-read '(((name . "foo") (id . 12))) "
-* foo #12 > bar @(ignore description assignee)\n
+* foo #12 > bar @ignore(description assignee)\n
 some descrition that's ignored
 ")
+    (test-read '(((name . "foo")))
+               "
+# @ignore(description)
+* foo # > hey @ignore(assignee)
+")
     (test-read-error "invalid property" '(bla)
-                     "* hehe # @(ignore bla)"))
+                     "* hehe # @ignore(bla)"))
   
   (test-group "invalid"
     (test-read-error "invalid command" '(bar)
-                     "* foo # @(bar)")
-    (test-read-error "invalid command syntax" '("@(bar")
-                     "* foo # @(bar")))
+                     "* foo # @bar")
+    (test-read-error "invalid command syntax" '("@bar(")
+                     "* foo # @bar(")))
 
 (test-exit)
