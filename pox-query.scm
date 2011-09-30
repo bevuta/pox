@@ -15,7 +15,7 @@
                          (parameterize ((sexpressive syntax*))
                            (call-with-input-string str
                              (lambda (in)
-                               (port-fold fn '() (lambda () (read* in)))))))))
+                               (reverse (port-fold fn '() (lambda () (read* in))))))))))
          (set! name
                (lambda (variable params)
                  (let ((val (alist-ref variable params)))
