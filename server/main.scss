@@ -34,8 +34,10 @@
      ((// |input[type=checkbox]|)
       (float left)
       (width auto)
-      (margin-left 9em)
-      (margin-right .5em))
+      (margin-right .5em)
+
+      ((& |#include-done|)
+       (margin-left 9em)))
 
 
      ((// button)
@@ -50,7 +52,7 @@
       ((& |#show-help|)
        (right 1em)))
 
-     ((// |label[for=include-done]|)
+     ((// label.checkbox)
       (width auto)))
 
     (|#tasks|
