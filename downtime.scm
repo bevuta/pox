@@ -100,6 +100,7 @@
        tasks))
 
 (define current-user (make-parameter #f))
+(define ignored-attributes (make-parameter '()))
 (define scope-stack (make-parameter '()))
 (define scope (make-parameter '()))
 (define last-item (make-parameter #f))
@@ -336,6 +337,9 @@
 (define (scoped? attr)
   (pair? (filter-scope attr)))
 
+(define (ignored? attr)
+  (memq attr (ignored-attributes)))
+
 (define (task-priority->string task)
   (and (not (scoped? 'priority))
        (let ((priority (alist-ref 'priority task)))
@@ -383,13 +387,14 @@
   (and (alist-ref 'done t) "done"))
 
 (define (format-task-attribute attr value)
-  (case attr
-    ((priority) (conc (if (or (zero? value) (positive? value)) '+ '-) (abs value)))
-    ((assigner) (conc "< " value))
-    ((assignee) (conc "> " value))
-    ((category) (or value "uncategorized"))
-    ((done)     (if value "done" "to do"))
-    ((tags)     (sprintf ":~A" value))))
+  (and (not (ignored? attr))
+       (case attr
+         ((priority) (conc (if (or (zero? value) (positive? value)) '+ '-) (abs value)))
+         ((assigner) (conc "< " value))
+         ((assignee) (conc "> " value))
+         ((category) (or value "uncategorized"))
+         ((done)     (if value "done" "to do"))
+         ((tags)     (sprintf ":~A" value)))))
 
 (define (conc-if s1 s2)
   (if s1 (conc s2 " " s1) s2))
@@ -412,7 +417,7 @@
   (parameterize ((current-user user))
     (let* ((line (conc "* " (task->item-line task user))) 
 	   (description (alist-ref 'description task)))
-      (if description
+      (if (and description (not (ignored? 'description)))
 	  (conc line "\n  " (string-intersperse (string-split description "\n" #t) "  \n  ") "\n")
 	  line))))
 
@@ -425,16 +430,20 @@
      (parameterize ((scope (alist-cons group groupings (scope))))
        (let ((heading (make-string (length (scope)) #\#)))
 	 (for-each (lambda (grouping)
-		     (print heading " " (format-task-attribute group (car grouping)))
+                     (parameterize ((ignored-attributes '()))
+                       (print heading " " (format-task-attribute group (car grouping))))
 		     (downtime-write-internal (cdr grouping)))
 		   groupings))))
     (else (for-each (lambda (task)
 		      (print (task->string task))) tasks)
 	  (newline))))
 
-(define (downtime-write tasks user #!optional origin)
-  (parameterize ((scope '()) (current-user user))
-    (when origin (print "@origin " (origin->string origin) #\newline))
+(define (downtime-write tasks user #!optional origin (ignore '()))
+  (parameterize ((scope '()) (current-user user) (ignored-attributes ignore))
+    (when origin
+      (printf "@origin(~S)~%~%" (origin->string origin)))
+    (unless (null? ignore)
+      (printf "@ignore~S~%~%" ignore))
     (downtime-write-internal tasks)))
 
 )

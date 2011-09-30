@@ -28,7 +28,11 @@
 (define-syntax test-write
   (syntax-rules ()
     ((_ result user tasks)
-     (test (irregex-replace/all '(+ space) result " ") result (with-output-to-string (cut downtime-write tasks user))))))
+     (test-write result user '() tasks))
+    ((_ result user ignore tasks)
+     (test (irregex-replace/all '(+ space) result " ")
+           result
+           (with-output-to-string (cut downtime-write tasks user #f ignore))))))
 
 
 (test-read '(((name . "foo"))) "* foo")
@@ -232,6 +236,19 @@ baz")
                         (creator . "foo")
                         (assigner . "bar")
                         (assignee . "bar"))))))
+
+(test-group "write ignore"
+  (test-write "@ignore(description priority)
+
+* nice #1 < what  \n\n"
+              "foo"
+              '(description priority)
+              '(((id . 1)
+                 (name . "nice")
+                 (assigner . "what")
+                 (assignee . "foo")
+                 (priority . 5)
+                 (description . "check it out")))))
 
 (test-group "commands"
   (test-group "properties"
