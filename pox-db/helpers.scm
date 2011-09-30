@@ -50,9 +50,9 @@
           (map cdr alist))))
 
 (define (db-query statement #!optional (vars '()))
-  (query* (db-connection)
-	  (->sql statement)
-	  vars))
+  (let ((sql (->sql statement)))
+    (log (debug query params) (cons 'values vars))
+    (query* (db-connection) sql vars)))
 
 (define (db-compose-query a b)
   (ssql-compose (db-connection) a b))
