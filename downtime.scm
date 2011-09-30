@@ -3,7 +3,7 @@
 (downtime-read downtime-write task->item-line task->string)
 
 (import chicken scheme extras data-structures)
-(use srfi-1 srfi-13 ports matchable uri-common sexpressive)
+(use srfi-1 srfi-13 ports matchable uri-common sexpressive srfi-14)
 
 (require-library regex)
 (import irregex)
@@ -101,6 +101,7 @@
 
 (define current-user (make-parameter #f))
 (define ignored-attributes (make-parameter '()))
+(define preamble-meta (make-parameter '()))
 (define scope-stack (make-parameter '()))
 (define scope (make-parameter '()))
 (define last-item (make-parameter #f))
@@ -128,18 +129,19 @@
 (define (update-alist-ref! key alist proc #!optional default (test eq?))
   (alist-update! key (proc (alist-ref key alist test default)) alist test))
 
-(define editable-task-properties
+(define editable-task-attributes
   '(assignee assigner priority done category tags description name))
 
-(define (editable-task-property? prop)
-  (memq prop editable-task-properties))
+(define (editable-task-attribute? attr)
+  (memq attr editable-task-attributes))
 
 (define read-command
   (let ((command-name-syntax (syntax:symbols))
         (argument-list-syntax (wrap-syntax (syntax:lists '((#\( . #\))))
                                            (append (syntax:whitespace)
+                                                   (syntax:strings)
                                                    (syntax:symbols)))))
-    (lambda (in)
+    (lambda (#!optional (in (current-input-port)))
       (condition-case
           (cons (read* in command-name-syntax)
                 (read* in argument-list-syntax))
@@ -147,43 +149,40 @@
              (and (not (eq? 'read* (get-condition-property exn 'exn 'location)))
                   (error exn)))))))
 
+(define (command:ignore _ meta . keys)
+  (for-each (lambda (key)
+              (unless (editable-task-attribute? key)
+                (error 'downtime-read "invalid task attribute" key)))
+            keys)
+
+  (update-alist-ref! 'filters
+                     meta
+                     (lambda (filters)
+                       (cons (lambda (task)
+                               (fold alist-delete task keys))
+                             filters))
+                     '()))
+
 (define parse-meta
-  (let* ((assign-property (lambda (#!optional (conversion identity))
-                            (lambda (key meta . vals)
-                              (alist-update! key (apply conversion vals) meta))))
-         (ignore-cmd (lambda (_ meta . keys)
-                       (for-each (lambda (key)
-                                   (unless (editable-task-property? key)
-                                     (error 'parse-meta "invalid property" key)))
-                                 keys)
-                       (update-alist-ref! 'filters
-                                          meta
-                                          (lambda (filters)
-                                            (cons (lambda (task)
-                                                    (fold (lambda (key task)
-                                                            (remove (lambda (p)
-                                                                      (eq? (car p) key))
-                                                                    task))
-                                                          task
-                                                          keys))
-                                                  filters))
-                                          '())))
-         (commands `((assignee . ,(assign-property ->string))
-                     (assigner . ,(assign-property ->string))
-                     (priority . ,(assign-property ->number))
-                     (done     . ,(assign-property
+  (let* ((assign-attr (lambda (#!optional (conversion identity))
+                        (lambda (key meta . vals)
+                          (alist-update! key (apply conversion vals) meta))))
+         (commands `((assignee . ,(assign-attr ->string))
+                     (assigner . ,(assign-attr ->string))
+                     (priority . ,(assign-attr ->number))
+                     (done     . ,(assign-attr
                                    (lambda (val)
                                      (string=? val "done"))))
-                     (category . ,(assign-property
+                     (category . ,(assign-attr
                                    (lambda (val)
-                                     (and (not (string=? val "uncategorized")) val))) )
+                                     (and (not (string=? val "uncategorized")) val))))
                      (tags     . ,(lambda (key meta val)
                                     (update-alist-ref! key
                                                        meta
                                                        (lambda (tags)
                                                          (cons val tags))
                                                        '())))
-                     (ignore   . ,ignore-cmd)))
+                     (ignore   . ,command:ignore)))
          (command-ref (lambda (name)
                         (let ((command (alist-ref name commands)))
                           (if command
@@ -259,8 +258,6 @@
 		       (cons (append-task-description (car result) "") (cdr result))
 		       result)))
 
-		((starts-with? "@" line) result)
-
 		((starts-with? "#" line) =>
 		 (lambda (rest-line)
 		   (and-let* ((scope-level (length (scope-stack)))
@@ -316,7 +313,8 @@
 
 (define (apply-filters tasks)
   (map (lambda (task)
-         (let ((filters (or (alist-ref 'filters task) '()))
+         (let ((filters (append (or (alist-ref 'filters (preamble-meta)) '())
+                                (or (alist-ref 'filters task) '())))
                (task (alist-delete 'filters task)))
            (fold (lambda (filter task)
                    (filter task))
@@ -324,17 +322,55 @@
                  filters)))
        tasks))
 
+(define apply-preamble-command
+  (let ((commands `((origin . ,(lambda (preamble command uri)
+                                 (alist-cons command (->string uri) preamble)))
+                    (ignore . ,(lambda (preamble command . attrs)
+                                 ;; this is not Haskell after all
+                                 (preamble-meta (apply command:ignore command (preamble-meta) attrs))
+                                 (update-alist-ref! command
+                                                    preamble
+                                                    (lambda (ignore)
+                                                      (delete-duplicates (append attrs ignore)))
+                                                    '()))))))
+    (lambda (command preamble)
+      (condition-case
+          (apply (or (alist-ref (car command) commands)
+                     (error 'downtime-read
+                            "invalid preamble command"
+                            (car command)))
+                 preamble
+                 command)
+        (exn (exn arity)
+             (error 'downtime-read 
+                    (get-condition-property exn 'exn 'message)
+                    (car command)))))))
+
+(define (read-preamble)
+  (let loop ((preamble '()))
+    (let ((char (peek-char)))
+      (cond ((eq? char #\@)
+             (read-char)
+             (loop (apply-preamble-command (read-command) preamble)))
+            ((char-set-contains? char-set:whitespace char)
+             (read-char)
+             (loop preamble))
+            (else (reverse preamble))))))
+
 (define (downtime-read)
   (parameterize ((scope-stack '())
 		 (scope '())
-		 (last-item #f))
-    (apply-filters
-     (unindent-descriptions
-      (reverse (let next ((result '()))
-                 (let ((line (read-line)))
-                   (if (eof-object? line)
-                       result
-                       (next (parse-line line result))))))))))
+		 (last-item #f)
+                 (preamble-meta '()))
+    (cons* 'downtime
+           (read-preamble)
+           (apply-filters
+            (unindent-descriptions
+             (reverse (let next ((result '()))
+                        (let ((line (read-line)))
+                          (if (eof-object? line)
+                              result
+                              (next (parse-line line result)))))))))))
 
 
 
@@ -439,13 +475,39 @@
 		      (print (task->string task))) tasks)
 	  (newline))))
 
-(define (downtime-write tasks user #!optional origin (ignore '()))
-  (parameterize ((scope '()) (current-user user) (ignored-attributes ignore))
-    (when origin
-      (printf "@origin(~S)~%~%" (origin->string origin)))
-    (unless (null? ignore)
-      (printf "@ignore~S~%~%" ignore))
-    (downtime-write-internal tasks)))
+(define write-preamble
+  (let ((commands `((origin . ,(lambda (_ origin)
+                                 (list (origin->string origin))))
+                    (ignore . ,(lambda (_ . args) args))
+                    (user   . ,(lambda (_ user) (and user (list (string->symbol user))))))))
+    (lambda (preamble skip)
+      (let ((printed? #f))
+        (for-each (lambda (command)
+                    (and-let* ((handler (and (not (memq (car command) skip))
+                                             (or (alist-ref (car command) commands)
+                                                 (error 'downtime-write "invalid preamble command" (car command)))))
+                               (args (apply handler
+                                            (car command)
+                                            (if (list? (cdr command))
+                                                (cdr command)
+                                                (list (cdr command)))))
+                               (args (if (null? args) "" (sprintf "~S" args))))
+                      (printf "@~A~A~%" (car command) args)
+                      (set! printed? #t)))
+                  preamble)
+        (when printed?
+          (newline))))))
+
+(define (downtime-write doc #!optional skip-preamble-commands)
+  (if (not (eq? 'downtime (car doc)))
+      (error 'downtime-write "missing downtime tag" doc)
+      (let ((preamble (cadr doc)))
+        (parameterize ((scope '())
+                       (current-user (alist-ref 'user preamble))
+                       (ignored-attributes (or (alist-ref 'ignore preamble) '())))
+
+          (write-preamble preamble skip-preamble-commands)
+          (downtime-write-internal (cddr doc))))))
 
 )
 

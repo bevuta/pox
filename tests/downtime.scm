@@ -9,10 +9,12 @@
 (define-syntax test-read
   (syntax-rules ()
     ((_ result text) 
+     (test-read result '() text))
+    ((_ result preamble text)
      (test (let ((t (irregex-replace/all '(+ (or space #\newline)) text " ")))
 	     (if (> (string-length t) 40) (substring t 0 40) t))
-       result
-       (map (cut filter cdr <>) (with-input-from-string text downtime-read))))))
+           `(downtime ,preamble . ,result)
+           (with-input-from-string text downtime-read)))))
 
 (define-syntax test-read-error
   (syntax-rules ()
@@ -29,10 +31,15 @@
   (syntax-rules ()
     ((_ result user tasks)
      (test-write result user '() tasks))
-    ((_ result user ignore tasks)
+    ((_ result user* preamble tasks)
      (test (irregex-replace/all '(+ space) result " ")
            result
-           (with-output-to-string (cut downtime-write tasks user #f ignore))))))
+           (with-output-to-string 
+               (lambda ()
+                 (downtime-write `(downtime
+                                   ((user . ,user*) . ,preamble)
+                                   . ,tasks)
+                                 '(user))))))))
 
 
 (test-read '(((name . "foo"))) "* foo")
@@ -130,8 +137,8 @@ foo")
 	   "* whatever #done")
 
 (test-read '(((name . "noooo") (done . #t))
-	     ((name . "wtf"))
-	     ((name . "baz"))
+	     ((name . "wtf") (done . #f))
+	     ((name . "baz") (done . #f))
 	     ((name . "ftw") (done . #t)))
 	   "
 # done
@@ -251,7 +258,7 @@ baz")
 
 * nice #1 < what  \n\n"
               "foo"
-              '(description priority)
+              '((ignore description priority))
               '(((id . 1)
                  (name . "nice")
                  (assigner . "what")
@@ -274,7 +281,7 @@ some descrition that's ignored
 # @ignore(description)
 * foo # > hey @ignore(assignee)
 ")
-    (test-read-error "invalid property" '(bla)
+    (test-read-error "invalid task attribute" '(bla)
                      "* hehe # @ignore(bla)"))
   
   (test-group "invalid"
@@ -285,6 +292,8 @@ some descrition that's ignored
 
 (test-group "preamble"
   (test-read '(((name . "foo")))
+             '((origin . "http://foo/bar.dt") 
+               (ignore description))
              "
 @origin(\"http://foo/bar.dt\")
 @ignore(description)
@@ -292,15 +301,15 @@ some descrition that's ignored
 * foo
 bar baz")
 
-  (test-write '(downtime ((ignore description assigner))
-                         ((id . 99)
-                          (name . "foo bar")
-                          (description . "check")
-                          (assigneer . "bar")
-                          (assignee  . "foo")))
-              "foo"
-              "@ignore(description assigner)
+  (test-write "@ignore(description assigner)
 
-* foo bar #99"))
+* foo bar #99  \n\n"
+              "foo"
+              '((ignore description assigner))
+              '(((id . 99)
+                 (name . "foo bar")
+                 (description . "check")
+                 (assigneer . "bar")
+                 (assignee  . "foo")))))
 
 (test-exit)
