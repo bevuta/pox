@@ -402,8 +402,8 @@
             (notify-users user-id (car results))
             (cdr results)))))))
 
-(define (task-list->string tasks user #!optional origin)
-  (with-output-to-string (cut downtime-write tasks user origin)))
+(define (task-list->string tasks user #!optional origin (ignore '()))
+  (with-output-to-string (cut downtime-write tasks user origin ignore)))
 
 (define (conflicts->string conflicts user)
   (string-intersperse (map (lambda (conflict) 
