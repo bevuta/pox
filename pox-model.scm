@@ -403,7 +403,14 @@
             (cdr results)))))))
 
 (define (task-list->string tasks user #!optional origin (ignore '()))
-  (with-output-to-string (cut downtime-write tasks user origin ignore)))
+  (with-output-to-string
+      (lambda ()
+        (downtime-write `(downtime
+                          ((user . ,user)
+                           (origin . ,origin)
+                           (ignore . ,ignore))
+                          . ,tasks)
+                        '(user)))))
 
 (define (conflicts->string conflicts user)
   (string-intersperse (map (lambda (conflict) 

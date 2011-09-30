@@ -101,7 +101,7 @@
                                ((application/json)
                                 (read-json-tasks body))
                                ((text/x-downtime)
-                                (with-input-from-string body downtime-read))))
+                                (cddr (with-input-from-string body downtime-read)))))
                       (_ (unless (list? tasks) (exit #t))) ;; FIXME: not very pretty
                       (conflicts (persist-user-tasks (string->user-id user) tasks)))
 
@@ -147,6 +147,39 @@
        (cons 'headers (headers->list (request-headers (current-request)))))
   (continue))
 
+;; (define (wrap-handler . args)
+;;   (let ((args (reverse args))
+;;         (handler (car args)))
+;;     (log debug: foo: handler)
+;;     (lambda (continue)
+;;       (let loop ((wrappers (cdr args)))
+;;         (if (null? wrappers)
+;;             (handler continue)
+;;             ((car wrappers)
+;;              (lambda () (loop (cdr wrappers)))
+;;              continue))))))
+
+;;; idea
+;; (define handle-request
+;;   (wrap-handler
+;;    with-request-dump
+;;    (with-session)
+;;    (uri-match/spiffy
+;;     `(((/ "session")
+;;        (POST ,post-session))
+;;       (,with-authentication
+;;        ((/ "users")
+;;         ((/ (submatch (+ any)))
+;;          ((/ "tasks")
+;;           (GET ,get-user-tasks)
+;;           (POST ,post-user-tasks))))
+
+;;        ((/ "tasks")
+;;         (GET ,(lambda (continue)
+;;                 (let ((user ((request-vars source: 'query-string) 'user)))
+;;                   (if user
+;;                       (get-user-tasks continue user)
+;;                       (get-tasks continue)))))))))))
 
 (define (with-authentication* handler)
   (if (authentication-enabled?)
