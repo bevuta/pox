@@ -183,14 +183,21 @@
                                                       (as notification_handlers nh)
                                                       (on (= nh.id un.handler_id))))))))))
 
-(define (tasks-diff? task1 task2)
-  (or (any (lambda (col)
-             (not (equal? (alist-ref col task2)
-                          (alist-ref col task1))))
-           '(description name done assignee_id assigner_id priority category))
-      (not (lset= equal? 
-                  (or (alist-ref 'tags task1) '())
-                  (or (alist-ref 'tags task2) '())))))
+(define tasks-diff?
+  (let ((attrs '(description name done assignee_id assigner_id priority category)))
+    (lambda (task1 task2 ignore)
+      (log (debug tasks-diff?)
+           (cons 'task1 task1)
+           (cons 'task2 task2)
+           (cons 'ignore ignore))
+      (or (any (lambda (col)
+                 (not (equal? (alist-ref col task2)
+                              (alist-ref col task1))))
+               (lset-difference eq? attrs ignore))
+          (not (or (memq 'tags ignore)
+                   (lset= equal?
+                          (or (alist-ref 'tags task1) '())
+                          (or (alist-ref 'tags task2) '()))))))))
 
 ;; FIXME: this is probably not required anymore as tasks should always contain user names now
 ;; ok, we still need for adding the names back in after saving a task
@@ -348,7 +355,9 @@
 		   (alist->ssql-update 'tasks (alist-delete 'tags task)
                                        conditions: `(= revision ,(sub1 (alist-ref 'revision task))))))
 
-	 (save   (lambda (user-id task)
+	 (save   (lambda (user-id task preamble)
+                   (log (debug save)
+                        (cons 'preamble preamble))
 		   (let* ((old-task (alist-ref 'id task))
                           (old-task (and old-task (select-task old-task)))
                           (old-task (and old-task
@@ -356,7 +365,7 @@
                                          (row-task old-task #t)))
 			  (task      (prepare user-id task old-task))
 			  (action    (if old-task
-					 (and (tasks-diff? old-task task) 'update)
+					 (and (tasks-diff? old-task task (or (alist-ref 'ignore preamble) '())) 'update)
 					 'insert))
 			  (statement (case action
 				       ((update) (update task user-id))
@@ -377,23 +386,27 @@
                                 (persist-tags task)
 				(list action task old-task)))))))
          (save-all (lambda (user-id tasks)
-                     (fold-right (lambda (task result)
-                                   (let ((change (save user-id task)))
-                                     (if change
-                                         (if (pair? change)
-                                             (cons (cons change (car result))
-                                                   (cdr result))
-                                             result)
-                                         (let* ((new-task (select-task (alist-ref 'id task)))
-                                                (new-task (and (< 0 (row-count new-task)) (row-task new-task #t)))
-                                                (task (if new-task
-                                                          (alist-update! 'revision (alist-ref 'revision new-task) task)
-                                                          task)))
-                                           (cons (car result)
-                                                 (cons (list task new-task)
-                                                       (cdr result)))))))
-                                 '(())
-                                 tasks))))
+                     (log (debug save-all)
+                          (cons 'tasks tasks))
+                     (let ((preamble (car tasks))
+                           (tasks (cdr tasks)))
+                       (fold-right (lambda (task result)
+                                     (let ((change (save user-id task preamble)))
+                                       (if change
+                                           (if (pair? change)
+                                               (cons (cons change (car result))
+                                                     (cdr result))
+                                               result)
+                                           (let* ((new-task (select-task (alist-ref 'id task)))
+                                                  (new-task (and (< 0 (row-count new-task)) (row-task new-task #t)))
+                                                  (task (if new-task
+                                                            (alist-update! 'revision (alist-ref 'revision new-task) task)
+                                                            task)))
+                                             (cons (car result)
+                                                   (cons (list task new-task)
+                                                         (cdr result)))))))
+                                   '(())
+                                   tasks)))))
 
     (lambda (user-id tasks)
       (with-transaction (db-connection)

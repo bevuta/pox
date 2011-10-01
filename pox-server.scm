@@ -99,10 +99,11 @@
                       (body (read-string content-length (request-port (current-request))))
                       (tasks (http-accept-case (current-request)
                                ((application/json)
-                                (read-json-tasks body))
+                                ;; the null list is the preamble; should add that to JSON as well, I guess
+                                (cons '() (read-json-tasks body)))
                                ((text/x-downtime)
-                                (cddr (with-input-from-string body downtime-read)))))
-                      (_ (unless (list? tasks) (exit #t))) ;; FIXME: not very pretty
+                                (cdr (with-input-from-string body downtime-read)))))
+                      (_ (unless (pair? (cdr tasks)) (exit #t))) ;; FIXME: not very pretty
                       (conflicts (persist-user-tasks (string->user-id user) tasks)))
 
              (if (null? conflicts)
