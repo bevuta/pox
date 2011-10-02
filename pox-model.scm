@@ -93,11 +93,19 @@
 (define (select-task id)
   (db-query (db-compose-query tasks-query `((where (= id ,id))))))
 
+(define (partition* lst . preds)
+  (apply values
+         (let loop ((lst lst) (preds preds))
+           (if (null? preds)
+               (list lst)
+               (receive (m rest) (partition (car preds) lst)
+                 (cons m (loop rest (cdr preds))))))))
+
 (define (prepare-filters filters)
-  (partition keyword? (or filters '())))
+  (partition* (or filters '()) keyword? number?))
 
 (define (select-tasks groups filters include-done #!optional additional-conditions)
-  (receive (tag-filters filters)
+  (receive (tag-filters id-filters filters)
       (prepare-filters filters)
     (let* ((conditions (if (pair? filters)
                            `((and . ,(map (lambda (i)
@@ -110,6 +118,10 @@
            (tag-filters (map keyword->string tag-filters))
            (conditions (if (pair? tag-filters)
                            `((and (@> tags (array . ,tag-filters))
+                                  . ,conditions))
+                           conditions))
+           (conditions (if (pair? id-filters)
+                           `((and (in id #(,@id-filters))
                                   . ,conditions))
                            conditions))
            (conditions (if include-done 

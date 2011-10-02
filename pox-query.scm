@@ -3,7 +3,7 @@
 (as-grouping as-filter as-ignore)
 
 (import chicken scheme)
-(use extras data-structures ports srfi-1 srfi-13 sexpressive)
+(use extras data-structures ports srfi-1 srfi-13 srfi-14 sexpressive)
 
 (define-syntax define-converter
   (syntax-rules ()
@@ -25,16 +25,30 @@
     ((_ name syntax)
      (define-converter name syntax cons))))
 
+(define (read-id port)
+  (string->number
+   (list->string
+    (let loop ()
+      (let ((char (peek-char port)))
+        (cond ((eof-object?  char)
+               '())
+              ((char-set-contains? char-set:whitespace char)
+               '())
+              ((char-set-contains? char-set:digit char)
+               (cons (read-char port) (loop)))
+              (else 'read* "invalid char in id" char)))))))
+
 (define-converter as-filter
   (append (syntax:whitespace)
+          (syntax:keywords)
+          `((#\# . ,(lambda (port)
+                      (read-char port)
+                      (read-id port))))
           (syntax:symbols as-string: #t))
   (lambda (x filter)
-    (if (and (string? x) (< (string-length x) 2))
+    (if (or (not x) (and (string? x) (< (string-length x) 2)))
         filter
-        (cons (if (eq? #\: (string-ref x 0))
-                  (string->keyword (string-drop x 1))
-                  x)
-              filter))))
+        (cons x filter))))
 
 (define-converter as-grouping
   (append (syntax:whitespace)
