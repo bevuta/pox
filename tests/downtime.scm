@@ -253,36 +253,49 @@ baz")
                  (assigner . "bar")
                  (assignee . "baz")))))
 
-(test-group "write ignore"
-  (test-write "@ignore(description priority)
-
-* nice #1 < what  \n\n"
-              "foo"
-              '((ignore description priority))
-              '(((id . 1)
-                 (name . "nice")
-                 (assigner . "what")
-                 (assignee . "foo")
-                 (priority . 5)
-                 (description . "check it out")))))
-
 (test-group "commands"
   (test-group "properties"
     (test-read '(((priority . 2) (assigner . "me") (name . "hey")))
                "* hey # @assigner(me) @priority(2)"))
 
   (test-group "ignore"
-    (test-read '(((name . "foo") (id . 12))) "
+    (test-group "reading"
+      (test-read '(((name . "foo") (id . 12))) "
 * foo #12 > bar @ignore(description assignee)\n
 some descrition that's ignored
 ")
-    (test-read '(((name . "foo")))
-               "
+      (test-read '(((name . "foo")))
+                 "
 # @ignore(description)
-* foo # > hey @ignore(assignee)
+* foo # > hey @ignore(assignee) ...
 ")
-    (test-read-error "invalid task attribute" '(bla)
-                     "* hehe # @ignore(bla)"))
+      (test-read-error "invalid task attribute" '(bla)
+                       "* hehe # @ignore(bla)"))
+
+    (test-group "writing"
+      (test-write "@ignore(assigner)
+
+* foo bar #99  
+  check\n\n\n"
+                  "foo"
+                  '((ignore assigner))
+                  '(((id . 99)
+                     (name . "foo bar")
+                     (description . "check")
+                     (assigneer . "bar")
+                     (assignee  . "foo"))))
+
+      (test-write "@ignore(description priority)
+
+* nice #1 < what ...  \n\n"
+                  "foo"
+                  '((ignore description priority))
+                  '(((id . 1)
+                     (name . "nice")
+                     (assigner . "what")
+                     (assignee . "foo")
+                     (priority . 5)
+                     (description . "check it out"))))))
   
   (test-group "invalid"
     (test-read-error "invalid command" '(bar)
@@ -299,17 +312,6 @@ some descrition that's ignored
 @ignore(description)
 
 * foo
-bar baz")
-
-  (test-write "@ignore(description assigner)
-
-* foo bar #99  \n\n"
-              "foo"
-              '((ignore description assigner))
-              '(((id . 99)
-                 (name . "foo bar")
-                 (description . "check")
-                 (assigneer . "bar")
-                 (assignee  . "foo")))))
+bar baz"))
 
 (test-exit)
