@@ -102,13 +102,25 @@ $(function() {
     }
 
     function save() {
-        tasks = $("#tasks");
+        var tasks = $("#tasks");
+        var preamble = [];
+        var data = "";
+
+        if ($("#compact-view").is(":checked")) {
+            preamble.push("@ignore(description)");
+        }
+
+        if (preamble.length) {
+            data += preamble.join("\n") + "\n\n";
+        }
+
+        data += tasks.find("textarea").val();
 
         $.ajax({
             url: tasksURI(tasks.data("user")),
             type: "POST",
             processData: false,
-            data: tasks.find("textarea").val(),
+            data: data,
             contentType: "text/x-downtime",
             beforeSend: function(request) {
 	        request.setRequestHeader("Accept", "text/x-downtime");
@@ -173,7 +185,7 @@ $(function() {
     }
 
     function showTasks(user, groups, filter, includeDone, compactView) {
-        var data = { "omit-origin": true };
+        var data = { skip: "user origin ignore" };
 
         if (groups && !groups.match(/^\s*$/)) {
             data["group-by"] = groups;

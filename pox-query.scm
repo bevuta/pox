@@ -1,6 +1,6 @@
 (module pox-query
 
-(as-grouping as-filter as-ignore)
+(as-grouping as-filter as-list-of-symbols)
 
 (import chicken scheme)
 (use extras data-structures ports srfi-1 srfi-13 srfi-14 sexpressive)
@@ -54,7 +54,7 @@
   (append (syntax:whitespace)
           (syntax:symbols)))
 
-(define-converter as-ignore
+(define-converter as-list-of-symbols
   (append (syntax:whitespace)
           (syntax:symbols)))
 

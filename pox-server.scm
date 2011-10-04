@@ -32,9 +32,9 @@
     (with-request-vars* (request-vars source: 'query-string)
         ((group-by as-grouping)
          (filter as-filter)
-         (ignore as-ignore)
+         (ignore as-list-of-symbols)
          (include-done as-boolean)
-         (omit-origin as-boolean))
+         (skip as-list-of-symbols))
       (let ((tasks (select-tasks group-by filter include-done)))
         (if (not tasks)
             (send-response status: 'not-found body: "Not Found")
@@ -46,9 +46,9 @@
                               body: (task-list->string
                                      tasks
                                      user
-                                     (and (not omit-origin)
-                                          (request-uri (current-request)))
-                                     ignore)))
+                                     (request-uri (current-request))
+                                     ignore
+                                     skip)))
               ((text/html)
                (send-page "tasks"
                           (if user

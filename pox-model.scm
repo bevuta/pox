@@ -427,7 +427,7 @@
             (notify-users user-id (car results))
             (cdr results)))))))
 
-(define (task-list->string tasks user #!optional origin (ignore '()))
+(define (task-list->string tasks user #!optional origin (ignore '()) (skip '(user)))
   (with-output-to-string
       (lambda ()
         (downtime-write `(downtime
@@ -435,7 +435,7 @@
                            (origin . ,origin)
                            (ignore . ,ignore))
                           . ,tasks)
-                        '(user)))))
+                        skip))))
 
 (define (conflicts->string conflicts user)
   (string-intersperse (map (lambda (conflict) 
