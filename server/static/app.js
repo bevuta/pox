@@ -301,7 +301,7 @@ $(function() {
     div("tasks").append($("<textarea/>")).append(help);
 
     $(document).keyup(function(event) {
-        if (event.ctrlKey && event.altKey && event.keyCode == 83) {
+        if (event.ctrlKey && event.metaKey && event.keyCode == 83) {
             save();
         }
     });
